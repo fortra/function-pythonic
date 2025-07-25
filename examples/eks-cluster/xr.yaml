@@ -1,0 +1,12 @@
+apiVersion: example.crossplane.io/v1beta1
+kind: XR
+metadata:
+  name: eks-cluster
+spec:
+  cluster:
+    region: us-east-1
+    name: my-test
+    version: '1.32'
+  tags:
+    project: development
+    environment: stage

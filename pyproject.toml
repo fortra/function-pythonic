@@ -1,0 +1,114 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "function"
+description = 'A Crossplane Function which composes Composites'
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = "Apache-2.0"
+keywords = []
+authors = [{ name = "Crossplane Maintainers", email = "info@crossplane.io" }]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+  "crossplane-function-sdk-python==0.8.0",
+  "pyyaml==6.0.2",
+]
+
+dynamic = ["version"]
+
+[project.urls]
+Documentation = "https://github.com/fortra/function-pythonic#readme"
+Issues = "https://github.com/fortra/function-pythonic/issues"
+Source = "https://github.com/fortra/function-pythonic"
+
+[project.scripts]
+function = "function.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["function"]
+
+[tool.hatch.version]
+path = "function/__version__.py"
+validate-bump = false            # Allow going from 0.0.0.dev0+x to 0.0.0.dev0+y.
+
+[tool.hatch.envs.default]
+type = "virtual"
+path = ".venv-default"
+dependencies = ["ipython==9.1.0"]
+
+[tool.hatch.envs.default.scripts]
+development = "python function/main.py --insecure --debug"
+
+[tool.hatch.envs.lint]
+type = "virtual"
+detached = true
+path = ".venv-lint"
+dependencies = ["ruff==0.11.5"]
+
+[tool.hatch.envs.lint.scripts]
+check = "ruff check function tests && ruff format --diff function tests"
+
+[tool.hatch.envs.test]
+type = "virtual"
+path = ".venv-test"
+
+[tool.hatch.envs.test.scripts]
+unit = "python -m unittest tests/*.py"
+
+[tool.ruff]
+target-version = "py311"
+exclude = ["function/proto/*"]
+
+[tool.ruff.lint]
+select = [
+  "A",
+  "ARG",
+  "ASYNC",
+  "B",
+  "C",
+  "D",
+  "DTZ",
+  "E",
+  "EM",
+  "ERA",
+  "F",
+  "FBT",
+  "I",
+  "ICN",
+  "ISC",
+  "N",
+  "PLC",
+  "PLE",
+  "PLR",
+  "PLW",
+  "Q",
+  "RUF",
+  "S",
+  "T",
+  "TID",
+  "UP",
+  "W",
+  "YTT",
+]
+ignore = ["ISC001"] # Ruff warns this is incompatible with ruff format.
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D"] # Don't require docstrings for tests.
+
+[tool.ruff.lint.isort]
+known-first-party = ["function"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.pep8-naming]
+# gRPC requires this PascalCase function name.
+extend-ignore-names = ["RunFunction"]

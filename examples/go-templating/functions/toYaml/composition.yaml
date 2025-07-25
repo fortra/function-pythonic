@@ -1,0 +1,25 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: example-function-to-yaml
+spec:
+  compositeTypeRef:
+    apiVersion: example.crossplane.io/v1beta1
+    kind: XR
+  mode: Pipeline
+  pipeline:
+
+  - step: render-templates
+    functionRef:
+      name: function-pythonic
+    input:
+      apiVersion: pythonic.fn.crossplane.io/v1beta1
+      kind: Composite
+      composite: |
+        class Composite(BaseComposite):
+          def compose(self):
+            self.status.dummy = str(self.spec.complexDictionary)
+            #self.status.dummy = format(self.spec.complexDictionary, 'yaml')
+            #self.status.dummy = format(self.spec.complexDictionary, 'json')
+            #self.status.dummy = format(self.spec.complexDictionary, 'jsonc')
+            #self.status.dummy = format(self.spec.complexDictionary, 'protobuf')
