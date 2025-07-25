@@ -1,0 +1,23 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: example-recursive-wrapper # defining the wrapper composition
+spec:
+  compositeTypeRef:
+    apiVersion: example.crossplane.io/v1beta1
+    kind: XR
+  mode: Pipeline
+  pipeline:
+  - step: render-templates
+    functionRef:
+      name: function-pythonic
+    input:
+      apiVersion: pythonic.fn.fortra.com/v1alpha1
+      kind: Composite
+      composite: |
+        class Composite(BaseComposite):
+          def compose(self):
+            for ix in range(int(self.spec.count)):
+              r = self.resources[f"test-xr-{ix}"]('example.crossplane.io/v1beta1', 'XR')
+              r.spec.compositionRef.name = 'example-recursive-real'
+              r.spec.region = f"us-west-{ix+1}"

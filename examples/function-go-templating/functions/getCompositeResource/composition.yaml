@@ -1,0 +1,23 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: example-function-get-composite-resource
+spec:
+  compositeTypeRef:
+    apiVersion: example.crossplane.io/v1beta1
+    kind: XR
+  mode: Pipeline
+  pipeline:
+
+  - step: render-templates
+    functionRef:
+      name: function-pythonic
+    input:
+      apiVersion: pythonic.fn.fortra.com/v1alpha1
+      kind: Composite
+      composite: |
+        class Composite(BaseComposite):
+          def compose(self):
+            r = self.resources.flexserver('dbforpostgresql.azure.upbound.io/v1beta1', 'FlexibleServer')
+            r.spec.forProvider.adminLogin = self.spec.adminLogin
+            r.spec.forProvider.location = self.spec.location

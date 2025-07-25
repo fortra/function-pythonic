@@ -1,0 +1,27 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: example-function-get-resource-condition
+spec:
+  compositeTypeRef:
+    apiVersion: example.crossplane.io/v1beta1
+    kind: XR
+  mode: Pipeline
+  pipeline:
+
+  - step: render-templates
+    functionRef:
+      name: function-pythonic
+    input:
+      apiVersion: pythonic.fn.fortra.com/v1alpha1
+      kind: Composite
+      composite: |
+        class Composite(BaseComposite):
+          def compose(self):
+            self.status.compositeCondition = self.conditions.Ready
+            self.status.compositeNotFound = self.conditions.Other
+            self.status.composedCondition = self.resources.project.conditions.Ready
+            if self.resources.project.conditions.Ready.status:
+              self.status.projectId = self.resources.project.status.atProvider.id
+            self.status.pipeline = self.resources.project.conditions.Ready
+            self.status.nonResource = self.resources.whatever.conditions.Ready

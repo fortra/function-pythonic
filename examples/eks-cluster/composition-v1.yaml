@@ -1,0 +1,133 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: eksclusters.pythonic.fortra.com
+spec:
+  compositeTypeRef:
+    apiVersion: pythonic.fortra.com/v1alpha1
+    kind: EksCluster
+  mode: Pipeline
+  pipeline:
+
+  - step: render-templates
+    functionRef:
+      name: function-pythonic
+    input:
+      apiVersion: pythonic.fn.fortra.com/v1alpha1
+      kind: Composite
+      composite: |
+        class Composite(BaseComposite):
+          def compose(self):
+            v = self.resources.VPC('ec2.aws.crossplane.io/v1beta1', 'VPC')
+            v.spec.forProvider.region = self.spec.cluster.region
+            v.spec.forProvider.enableDnsHostNames = True
+            v.spec.forProvider.enableDnsSupport = True
+            v.spec.forProvider.cidrBlock = '10.0.0.0/16'
+            v.spec.forProvider.tags = self.tags(Name=self.spec.cluster.name)
+            self.status.vpcId = v.status.atProvider.vpcId
+            if not self.status.vpcId:
+              return
+
+            publicTableId, publicSubnetIds = self.compose_network(
+              True, '10.0.0.0/20', '10.0.16.0/20', '10.0.32.0/20',
+            )
+            privateTableId, privateSubnetIds = self.compose_network(
+              False, '10.0.64.0/18', '10.0.128.0/18', '10.0.192.0/18',
+            )
+
+            g = self.resources.InternetGateway('ec2.aws.crossplane.io/v1beta1', 'InternetGateway')
+            g.spec.forProvider.region = self.spec.cluster.region
+            g.spec.forProvider.vpcId = self.status.vpcId
+            g.spec.forProvider.tags = self.tags(Name=self.spec.cluster.name)
+            if publicTableId and g.status.atProvider.internetGatewayId:
+              r = self.resources.RoutePublic('ec2.aws.crossplane.io/v1alpha1', 'Route').spec.forProvider
+              r.region = self.spec.cluster.region
+              r.routeTableId = publicTableId
+              r.destinationCIDRBlock = '0.0.0.0/0'
+              r.gatewayId = g.status.atProvider.internetGatewayId
+
+            a = self.resources.Address('ec2.aws.crossplane.io/v1beta1', 'Address')
+            a.spec.forProvider.region = self.spec.cluster.region
+            a.spec.forProvider.tags = self.tags(Name=self.spec.cluster.name)
+            if publicSubnetIds and a.status.atProvider.allocationId:
+              g = self.resources.NATGateway('ec2.aws.crossplane.io/v1beta1', 'NATGateway')
+              g.spec.forProvider.region = self.spec.cluster.region
+              g.spec.forProvider.allocationId = a.status.atProvider.allocationId
+              g.spec.forProvider.subnetId = publicSubnetIds[0]
+              g.spec.forProvider.tags = self.tags(Name=self.spec.cluster.name)
+              if privateTableId and g.status.atProvider.natGatewayId:
+                r = self.resources.RoutePrivate('ec2.aws.crossplane.io/v1alpha1', 'Route').spec.forProvider
+                r.region = self.spec.cluster.region
+                r.routeTableId = privateTableId
+                r.destinationCIDRBlock = '0.0.0.0/0'
+                r.natGatewayId = g.status.atProvider.natGatewayId
+
+            roleArn = self.compose_cluster_role()
+            if roleArn and publicSubnetIds and privateSubnetIds:
+              c = self.resources.Cluster('eks.aws.crossplane.io/v1beta1', 'Cluster')
+              c.externalName = self.spec.cluster.name
+              c.spec.forProvider.region = self.spec.cluster.region
+              c.spec.forProvider.roleArn = roleArn
+              c.spec.forProvider.version = self.spec.cluster.version
+              c.spec.forProvider.resourcesVpcConfig.subnetIds = publicSubnetIds + privateSubnetIds
+              c.spec.forProvider.tags = self.tags()
+
+          def compose_network(self, public, *subnets):
+            access = 'public' if public else 'private'
+            subnetIds = []
+            for ix, subnet in enumerate(subnets):
+              zone = chr(ord('a') + ix)
+              s = self.resources[f"Subnet{access.capitalize()}{zone.capitalize()}"](
+                'ec2.aws.crossplane.io/v1beta1', 'Subnet'
+              )
+              s.spec.forProvider.region = self.spec.cluster.region
+              s.spec.forProvider.vpcId = self.status.vpcId
+              s.spec.forProvider.availabilityZone = f"{self.spec.cluster.region}{zone}"
+              s.spec.forProvider.cidrBlock = subnet
+              s.spec.forProvider.mapPublicIPOnLaunch = public
+              s.spec.forProvider.tags = self.tags(
+                f"Name = {self.spec.cluster.name}-{access}-{zone}",
+                f"kubernetes.io/cluster/{self.spec.cluster.name} = owned",
+                f"topology.kubernetes.io/zone = {self.spec.cluster.region}{zone}",
+                f"kubernetes.io/role/{'elb' if public else 'internal-elb'} = 1",
+              )
+              if s.status.atProvider.subnetId:
+                subnetIds.append(s.status.atProvider.subnetId)
+            if len(subnetIds) != len(subnets):
+              return None, []
+            t = self.resources[f"RouteTable{access.capitalize()}"](
+              'ec2.aws.crossplane.io/v1beta1', 'RouteTable'
+            )
+            t.spec.forProvider.region = self.spec.cluster.region
+            t.spec.forProvider.vpcId = self.status.vpcId
+            t.spec.forProvider.associations = [{'subnetId': subnetId} for subnetId in subnetIds]
+            t.spec.forProvider.ignoreRoutes = True
+            t.spec.forProvider.tags = self.tags(Name=f"{self.spec.cluster.name}-{access}")
+            return t.status.atProvider.routeTableId, subnetIds
+
+          def compose_cluster_role(self):
+            name = f"{self.spec.cluster.name}-cluster"
+            d = Struct(Version='2012-10-17')
+            d.Statement[0].Effect = 'Allow'
+            d.Statement[0].Principal.Service = 'eks.amazonaws.com'
+            d.Statement[0].Action = 'sts:AssumeRole'
+            r = self.resources.RoleCluster('iam.aws.crossplane.io/v1beta1', 'Role')
+            r.externalName = name
+            r.spec.forProvider.assumeRolePolicyDocument = format(d, 'json')
+            r.spec.forProvider.tags = self.tags()
+            for policy in ('ClusterPolicy', 'VPCResourceController'):
+              a = self.resources[f"Rpa{policy}"]('iam.aws.crossplane.io/v1beta1', 'RolePolicyAttachment').spec.forProvider
+              a.roleName = name
+              a.policyArn = f"arn:aws:iam::aws:policy/AmazonEKS{policy}"
+            return r.status.atProvider.arn
+
+          def tags(self, *args, **kwargs):
+            tags = []
+            for arg in args:
+              arg = arg.split('=', 1)
+              tags.append({'key': arg[0].strip(), 'value': arg[1].lstrip()})
+            tags.extend([{'key': k, 'value': v} for k,v in kwargs.items()])
+            if self.spec.tags:
+              tags.extend([{'key': k, 'value': v} for k,v in self.spec.tags])
+            return tags
+

@@ -1,0 +1,36 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: example-inline
+spec:
+  compositeTypeRef:
+    apiVersion: example.crossplane.io/v1beta1
+    kind: XR
+  mode: Pipeline
+  pipeline:
+
+  - step: render-templates
+    functionRef:
+      name: function-pythonic
+    input:
+      apiVersion: pythonic.fn.fortra.com/v1alpha1
+      kind: Composite
+      composite: |
+        import random
+        class Composite(BaseComposite):
+          def compose(self):
+            for ix in range(self.spec.count):
+              user = f"test-user-{ix}"
+              r = self.resources[user]('iam.aws.upbound.io/v1beta1', 'User')
+              r.metadata.labels['testing.upbound.io/example-name'] = user
+              r.metadata.labels.dummy = r.observed.resource.metadata.labels.dummy or random.choice(['foo', 'bar', 'baz'])
+              r = self.resources[f"sample-access-key-{ix}"]('iam.aws.upbound.io/v1beta1', 'AccessKey')
+              r.spec.forProvider.userSelector.matchLabels['testing.upbound.io/example-name'] = user
+              r.spec.writeConnectionSecretToRef.namespace = 'crossplane.system'
+              r.spec.writeConnectionSecretToRef.name = f"sample-access-key-secret-{ix}"
+            connection = self.resources['sample-access-key-0'].connection
+            if connection:
+              self.connection.username = connection.username
+              self.connection.password = connection.password
+              self.connection.url = 'http://www.example.com'
+            self.status.dummy = 'cool-status'

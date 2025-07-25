@@ -1,0 +1,42 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: example-function-to-yaml
+spec:
+  compositeTypeRef:
+    apiVersion: example.crossplane.io/v1beta1
+    kind: XR
+  mode: Pipeline
+  pipeline:
+
+  - step: render-templates
+    functionRef:
+      name: function-pythonic
+    input:
+      apiVersion: pythonic.fn.fortra.com/v1alpha1
+      kind: Composite
+      composite: |
+        class Composite(BaseComposite):
+          def compose(self):
+            labels = {
+              'some-text': self.spec.val1,
+              'other-text': self.spec.val2,
+            }
+            r = self.resources.test1('apps/v1', 'Deployment')
+            r.metadata.labels = labels
+            r.spec.replicas = 3
+            r.spec.selector.matchLabels = labels
+            r.spec.template.metadata.labels = {'app': 'nginx', **labels}
+            r.spec.template.spec.containers[0].name = 'nginx'
+            r.spec.template.spec.containers[0].image = 'nginx:1.14.2'
+            r.spec.template.spec.containers[0].ports[0].containerPort = 80
+            r = self.resources.test2
+            r.apiVersion = 'apps/v1'
+            r.kind = 'Deployment'
+            r.metadata.labels = labels
+            r.spec.replicas = 3
+            r.spec.selector.matchLabels = labels
+            r.spec.template.metadata.labels = {'app': 'nginx', **labels}
+            r.spec.template.spec.containers[0].name = 'nginx'
+            r.spec.template.spec.containers[0].image = 'nginx:1.14.2'
+            r.spec.template.spec.containers[0].ports[0].containerPort = 80

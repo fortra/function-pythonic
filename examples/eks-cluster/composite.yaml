@@ -1,0 +1,12 @@
+apiVersion: pythonic.fortra.com/v1alpha1
+kind: EksCluster
+metadata:
+  name: pythonic
+spec:
+  cluster:
+    region: us-east-1
+    name: pythonic
+    version: '1.32'
+  tags:
+    project: development
+    environment: stage

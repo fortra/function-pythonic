@@ -1,0 +1,18 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: composites.pythonic.fortra.com
+spec:
+  compositeTypeRef:
+    apiVersion: pythonic.fortra.com/v1alpha1
+    kind: Composite
+  mode: Pipeline
+  pipeline:
+  - step: pythonic
+    functionRef:
+      name: function-pythonic
+    input:
+      apiVersion: pythonic.fn.fortra.com/v1alpha1
+      kind: Composite
+      # functin-pythonic gets the python from the composite itself
+      composite: ''

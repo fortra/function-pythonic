@@ -1,0 +1,29 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: example-function-get-composed-resource
+spec:
+  compositeTypeRef:
+    apiVersion: example.crossplane.io/v1beta1
+    kind: XR
+  mode: Pipeline
+  pipeline:
+
+  - step: render-templates
+    functionRef:
+      name: function-pythonic
+    input:
+      apiVersion: pythonic.fn.fortra.com/v1alpha1
+      kind: Composite
+      composite: |
+        apiVersion = 'dbforpostgresql.azure.upbound.io/v1beta1'
+        class Composite(BaseComposite):
+          def compose(self):
+            self.ttl = (5 * 60) + 30
+            s = self.resources.flexServer(apiVersion, 'FlexibleServer')
+            s.spec.providerConfigRef.name = 'my-provider-cfg'
+            s.spec.forProvider.storageMb = 32768
+            if s.status.atProvider.id:
+              c = self.resources.flexServerConfig(apiVersion, 'FlexibleServerConfiguration')
+              c.spec.providerConfigRef.name = 'my-provider-cfg'
+              c.spec.forProvider.serverId = s.status.atProvider.id

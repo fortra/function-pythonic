@@ -1,0 +1,47 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: eksclusters.pythonic.fortra.com
+spec:
+  group: pythonic.fortra.com
+  names:
+    kind: EksCluster
+    plural: eksclusters
+  defaultCompositionRef:
+    name: eksclusters.pythonic.fortra.com
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              cluster:
+                type: object
+                properties:
+                  region:
+                    type: string
+                  name:
+                    type: string
+                  version:
+                    type: string
+                    default: '1.32'
+                required:
+                - region
+                - name
+              tags:
+                type: object
+                additionalProperties:
+                  type: string
+                default: {}
+            required:
+            - cluster
+          status:
+            type: object
+            properties:
+              vpcId:
+                type: string

@@ -1,0 +1,9 @@
+apiVersion: pythonic.fortra.com/v1alpha1
+kind: Composite
+metadata:
+  name: composite-example
+spec:
+  composite: |
+    class Composite(BaseComposite):
+      def compose(self):
+        self.status.composite = 'Hello, World!'
