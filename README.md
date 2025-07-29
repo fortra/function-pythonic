@@ -93,7 +93,7 @@ response.desired.resources.vpc.resource.spec.forProvider.region = 'us-east-1'
 ```
 Calling a message or map will clear it and will set any provided key word
 arguments. For example, this will either create or clear the resource
-and then set it's apiVersion and kind:
+and then set its apiVersion and kind:
 ```python
 response.desired.resources.vpc.resource(apiVersion='ec2.aws.crossplane.io/v1beta1', kind='VPC')
 ```
