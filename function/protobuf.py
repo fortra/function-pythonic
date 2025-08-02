@@ -311,6 +311,8 @@ class MapMessage:
             self._messages = self._parent._create_child(self._key)
         if isinstance(message, Message):
             message = message._message
+        if isinstance(message, str) and self._field.type == self._field.TYPE_BYTES:
+            message = message.encode()
         self._messages[key] = message
         self._cache.pop(key, None)
 
@@ -484,8 +486,8 @@ class Values:
             self._cache[key] = value
             return value
         if isinstance(key, str):
-            if self._type != self.Type.MAP:
-                if self._type != self.Type.UNKNOWN:
+            if not self._isMap:
+                if not self._isUnknown:
                     raise ValueError('Invalid key, must be a str for maps')
                 self.__dict__['_type'] = self.Type.MAP
             if self._values is None or key not in self._values:
@@ -493,8 +495,8 @@ class Values:
             else:
                 struct_value = self._values.fields[key]
         elif isinstance(key, int):
-            if self._type != self.Type.LIST:
-                if self._type != self.Type.UNKNOWN:
+            if not self._isList:
+                if not self._isUnknown:
                     raise ValueError('Invalid key, must be an int for lists')
                 self.__dict__['_type'] = self.Type.LIST
             if self._values is None or key >= len(self._values):
@@ -536,24 +538,24 @@ class Values:
 
     def __contains__(self, item):
         if self._values is not None:
-            if self._type == self.Type.MAP:
+            if self._isMap:
                 return item in self._values or item in self._unknowns
-            if self._type == self.Type.LIST:
+            if self._isList:
                 for value in self:
                     if item == value:
                         return True
-                if isinstance(item, Values) and item._type == Type.UNKNOWN:
+                if isinstance(item, Values) and item._isUnknown:
                     return bool(self._unknowns)
         return False
 
     def __iter__(self):
         if self._values is not None:
-            if self._type == self.Type.MAP:
+            if self._isMap:
                 for key in self._values:
                     yield key, self[key]
                 for key in self._unknowns:
                     yield key, self[key]
-            elif self._type == self.Type.LIST:
+            elif self._isList:
                 for ix in range(len(self._values)):
                     yield self[ix]
                 for ix in sorted(self._unknowns):
@@ -562,9 +564,9 @@ class Values:
 
     def __hash__(self):
         if self._values is not None:
-            if self._type == self.Type.MAP:
+            if self._isMap:
                 return hash(tuple(hash(item) for item in sorted(iter(self), key=lambda item: item[0])))
-            if self._type == self.Type.LIST:
+            if self._isList:
                 return hash(tuple(hash(item) for item in self))
         return self._type
 
@@ -579,13 +581,13 @@ class Values:
             return False
         if len(self) != len(other):
             return False
-        if self._type == self.Type.MAP:
+        if self._isMap:
             for key, value in self:
                 if key not in other:
                     return False
                 if value != other[key]:
                     return False
-        if self._type == self.Type.LIST:
+        if self._isList:
             for ix, value in enumerate(self):
                 if value != other[ix]:
                     return False
@@ -604,23 +606,23 @@ class Values:
                 parent = self._parent._fullName
                 if parent:
                     return f"{parent}.{self._key}"
-            return self._key
+            return str(self._key)
         return ''
 
     def _create_child(self, key, type):
         if self._readOnly:
             raise ValueError(f"{self._readOnly} is read only")
         if isinstance(key, str):
-            if self._type != self.Type.MAP:
-                if self._type != self.Type.UNKNOWN:
+            if not self._isMap:
+                if not self._isUnknown:
                     raise ValueError('Invalid key, must be a str for maps')
                 self.__dict__['_type'] = self.Type.MAP
             if self._values is None:
                 self.__dict__['_values'] = self._parent._create_child(self._key, self._type)
             struct_value = self._values.fields[key]
         elif isinstance(key, int):
-            if self._type != self.Type.LIST:
-                if self._type != self.Type.UNKNOWN:
+            if not self._isList:
+                if not self._isUnknown:
                     raise ValueError('Invalid key, must be an int for lists')
                 self.__dict__['_type'] = self.Type.LIST
             if self._values is None:
@@ -646,8 +648,8 @@ class Values:
         self._cache.clear()
         self._unknowns.clear()
         if len(kwargs):
-            if self._type != self.Type.MAP:
-                if self._type != self.Type.UNKNOWN:
+            if not self._isMap:
+                if not self._isUnknown:
                     raise ValueError('Cannot specify kwargs on lists')
                 self.__dict__['_type'] = self.Type.MAP
             if len(args):
@@ -658,8 +660,8 @@ class Values:
             for key, value in kwargs.items():
                 self[key] = value
         elif len(args):
-            if self._type != self.Type.LIST:
-                if self._type != self.Type.UNKNOWN:
+            if not self._isList:
+                if not self._isUnknown:
                     raise ValueError('Cannot specify args on maps')
                 self.__dict__['_type'] = self.Type.LIST
             if len(kwargs):
@@ -670,8 +672,8 @@ class Values:
             for key in range(len(args)):
                 self[key] = args[key]
         else:
-            if self._type != self.Type.MAP:
-                if self._type != self.Type.UNKNOWN:
+            if not self._isMap:
+                if not self._isUnknown:
                     self.__dict__['_type'] = self.Type.MAP # Assume a map is wanted
             if self._values is None:
                 self.__dict__['_values'] = self._parent._create_child(self._key, self._type)
@@ -685,16 +687,16 @@ class Values:
         if self._readOnly:
             raise ValueError(f"{self._readOnly} is read only")
         if isinstance(key, str):
-            if self._type != self.Type.MAP:
-                if self._type != self.Type.UNKNOWN:
+            if not self._isMap:
+                if not self._isUnknown:
                     raise ValueError('Invalid key, must be a str for maps')
                 self.__dict__['_type'] = self.Type.MAP
             if self._values is None:
                 self.__dict__['_values'] = self._parent._create_child(self._key, self._type)
             values = self._values.fields
         elif isinstance(key, int):
-            if self._type != self.Type.LIST:
-                if self._type != self.Type.UNKNOWN:
+            if not self._isList:
+                if not self._isUnknown:
                     raise ValueError('Invalid key, must be an int for lists')
                 self.__dict__['_type'] = self.Type.LIST
             if self._values is None:
@@ -727,24 +729,28 @@ class Values:
             for k, v in enumerate(value):
                 sv[k] = v
         elif isinstance(value, Values):
-            if value._type == value.Type.MAP:
+            if value._isMap:
                 values[key].struct_value.Clear()
                 sv = self[key]
                 for k, v in value:
                     sv[k] = v
-            elif value._type == value.Type.LIST:
+            elif value._isList:
                 values[key].list_value.Clear()
                 sv = self[key]
                 for k, v in enumerate(value):
                     sv[k] = v
             else:
                 self._unknowns.add(key)
-                if self._type == self.Type.MAP:
+                if self._isMap:
                     if key in values:
                         del values[key]
-                else:
+                elif self._isList:
                     if key < len(values):
-                        del values[key]
+                        values[key].Clear()
+                    for ix in reversed(range(len(values))):
+                        if ix not in self._unknowns:
+                            break
+                        del values[ix]
         else:
             raise ValueError('Unexpected type')
 
@@ -755,8 +761,8 @@ class Values:
         if self._readOnly:
             raise ValueError(f"{self._readOnly} is read only")
         if isinstance(key, str):
-            if self._type != self.Type.MAP:
-                if self._type != self.Type.UNKNOWN:
+            if not self._isMap:
+                if not self._isUnknown:
                     raise ValueError('Invalid key, must be a str for maps')
                 self.__dict__['_type'] = self.Type.MAP
             if self._values is not None:
@@ -765,27 +771,48 @@ class Values:
                 self._cache.pop(key, None)
                 self._unknowns.discard(key)
         elif isinstance(key, int):
-            if self._type != self.Type.LIST:
-                if self._type != self.Type.UNKNOWN:
+            if not self._isList:
+                if not self._isUnknown:
                     raise ValueError('Invalid key, must be an int for lists')
                 self.__dict__['_type'] = self.Type.LIST
             if self._values is not None:
                 if key < len(self._values):
-                    self._values.values[key].Clear()
+                    del self._values[key]
                 self._cache.pop(key, None)
                 self._unknowns.discard(key)
+                for ix in sorted([ix in self._unknowns]):
+                    if ix > key:
+                        self._cache.pop(ix, None)
+                        self._unknowns.add(ix - 1)
+                        self._unknowns.disacard(ix)
+                for ix in reversed(range(len(self._values))):
+                    if ix not in self._unknowns:
+                        break
+                    del self._values[ix]
         else:
             raise ValueError('Unexpected key type')
+
+    @property
+    def _isUnknown(self):
+        return self._type == self.Type.UNKNOWN
+
+    @property
+    def _isMap(self):
+        return self._type == self.Type.MAP
+
+    @property
+    def _isList(self):
+        return self._type == self.Type.LIST
 
     @property
     def _hasUnknowns(self):
         if self._unknowns:
             return True
-        if self._type == self.Type.MAP:
+        if self._isMap:
             for key, value in self:
                 if isinstance(value, Values) and value._hasUnknowns:
                     return True
-        elif self._type == self.Type.LIST:
+        elif self._isList:
             for value in self:
                 if isinstance(value, Values) and value._hasUnknowns:
                     return True
@@ -794,13 +821,13 @@ class Values:
     def _patchUnknowns(self, patches):
         for key in [key for key in self._unknowns]:
             self[key] = patches[key]
-        if self._type == self.Type.MAP:
+        if self._isMap:
             for key, value in self:
                 if isinstance(value, Values) and len(value):
                     patch = patches[key]
                     if isinstance(patch, Values) and patch._type == value._type and len(patch):
                         value._patchUnknowns(patch)
-        elif self._type == self.Type.LIST:
+        elif self._isList:
             for ix, value in enumerate(self):
                 if isinstance(value, Values) and len(value):
                     patch = patches[ix]
@@ -835,11 +862,11 @@ class _JSONEncoder(json.JSONEncoder):
                 return [value for value in object]
             return None
         if isinstance(object, Values):
-            if object._type == Values.Type.MAP:
+            if object._isMap:
                 return {key: value for key, value in object}
-            if object._type == Values.Type.LIST:
+            if object._isList:
                 return [value for value in object]
-            if object._type == Values.Type.UNKNOWN:
+            if object._isUnknown:
                 return '<<UNKNOWN>>'
             return '<<UNEXPECTED>>'
         if isinstance(object, datetime.datetime):
@@ -859,11 +886,11 @@ class _Dumper(yaml.SafeDumper):
         return self.represent_list([value for value in messages])
 
     def represent_values(self, values):
-        if values._type == Values.Type.MAP:
+        if values._isMap:
             return self.represent_dict({key: value for key, value in values})
-        if values._type == Values.Type.LIST:
+        if values._isList:
             return self.represent_list([value for value in values])
-        if values._type == Values.Type.UNKNOWN:
+        if values._isUnknown:
             return self.represent_scalar('tag:yaml.org,2002:str', '<<UNKNOWN>>')
         return self.represent_scalar('tag:yaml.org,2002:str', '<<UNEXPECTED>>')
 

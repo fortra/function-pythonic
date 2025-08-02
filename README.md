@@ -116,6 +116,8 @@ The following functions are provided to create Protobuf structures:
 | List | Create a new Protobuf list |
 | Yaml | Create a new Protobuf structure from a yaml string |
 | Json | Create a new Protobuf structure from a json string |
+| Base64Encode | Encode a string into base 64 |
+| Base64Decode | Decode a string from base 64 |
 
 The following items are supported in all the Protobuf Message wrapper classes: `bool`,
 `len`, `contains`, `iter`, `hash`, `==`, `str`, `format`

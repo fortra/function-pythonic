@@ -48,27 +48,27 @@ jobs:
   #         python-version: ${{ env.PYTHON_VERSION }}
 
   #     - name: Setup Hatch
-  #       run: pipx install hatch==1.7.0
+  #       run: pipx install hatch==1.14.1
 
   #     - name: Lint
   #       run: hatch run lint:check
 
-  # unit-test:
-  #   runs-on: ubuntu-24.04
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4
+  unit-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  #     - name: Setup Python
-  #       uses: actions/setup-python@v5
-  #       with:
-  #         python-version: ${{ env.PYTHON_VERSION }}
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
 
-  #     - name: Setup Hatch
-  #       run: pipx install hatch==1.7.0
+      - name: Setup Hatch
+        run: pipx install hatch==1.14.1
 
-  #     - name: Run Unit Tests
-  #       run: hatch run test:unit
+      - name: Run Unit Tests
+        run: hatch run test:unit
 
   # We want to build most packages for the amd64 and arm64 architectures. To
   # speed this up we build single-platform packages in parallel. We then upload

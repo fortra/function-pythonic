@@ -1,6 +1,7 @@
 """A Crossplane composition function."""
 
 import asyncio
+import base64
 import inspect
 
 import grpc
@@ -21,15 +22,8 @@ class FunctionRunner(grpcv1.FunctionRunnerService):
         self.modules = {}
 
     async def RunFunction(
-        self, request: fnv1.RunFunctionRequest, context: grpc.aio.ServicerContext
+        self, request: fnv1.RunFunctionRequest, _: grpc.aio.ServicerContext
     ) -> fnv1.RunFunctionResponse:
-        try:
-            return await self.run(request, context)
-        except Exception as e:
-            self.logger.exception('Error during RunFuction')
-            raise
-
-    async def run(self, request, context):
         composite = request.observed.composite.resource
         logger = self.logger.bind(
             apiVersion=composite['apiVersion'],
@@ -114,3 +108,5 @@ class Module:
         self.List = function.protobuf.List
         self.Yaml = function.protobuf.Yaml
         self.Json = function.protobuf.Json
+        self.B64Encode = lambda s: base64.b64encode(s.encode('utf-8')).decode('utf-8')
+        self.B64Decode = lambda s: base64.b64decode(s.encode('utf-8')).decode('utf-8')

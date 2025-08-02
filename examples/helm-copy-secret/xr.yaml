@@ -1,5 +1,5 @@
-apiVersion: pythonic.fortra.com/v1alpha1
-kind: ArgoCD
+apiVersion: example.joebowbeer.com/v1alpha1
+kind: XCluster
 metadata:
-  name: argocd
+  name: xc1
 spec: {}
