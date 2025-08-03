@@ -3,8 +3,8 @@ name: CI
 on:
   push:
     branches:
-      - main
-      - release-*
+    - main
+    - release-*
   pull_request: {}
   workflow_dispatch:
     inputs:
@@ -53,22 +53,38 @@ jobs:
   #     - name: Lint
   #       run: hatch run lint:check
 
-  unit-test:
+  test:
     runs-on: ubuntu-24.04
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Setup Hatch
-        run: pipx install hatch==1.14.1
+    - name: Setup Hatch
+      run: pipx install hatch==1.14.1
 
-      - name: Run Unit Tests
-        run: hatch run test:unit
+    - name: Run Unit Tests
+      run: hatch run test:ci
+
+    - name: Pytest coverage comment
+      uses: MishaKav/pytest-coverage-comment@v1.1.54
+      with:
+        badge-title: Coverage
+        title: Coverage Report
+        pytest-xml-coverage-path: reports/pytest-coverage.xml
+        junitxml-title: Unit Tests
+        junitxml-path: reports/pytest-junit.xml
+        #hide-badge: false
+        #hide-report: false
+        #create-new-comment: false
+        #hide-comment: false
+        #report-only-changed-files: false
+        #remove-link-from-badge: false
+        #unique-id-for-comment: python3.8
 
   # We want to build most packages for the amd64 and arm64 architectures. To
   # speed this up we build single-platform packages in parallel. We then upload

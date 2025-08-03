@@ -85,7 +85,7 @@ region = request.observed.composite.resource.spec.region
 region = request['observed']['composite']['resource']['spec']['region']
 ```
 Getting values from free form map and list values will not throw
-errors for keys that do not exist, but will return an empty placeholder
+errors for keys that do not exist, but will return an unknown placeholder
 which evaluates as False. For example, the following will evaluate as False
 with a just created RunFunctionResponse message:
 ```python
@@ -97,7 +97,7 @@ Note that maps or lists that do exist but do not have any members will evaluate
 as True, contrary to Python dicts and lists. Use the `len` function to test
 if the map or list exists and has members.
 
-When setting fields, all empty intermediary placeholders will automatically
+When setting fields, all intermediary unknown placeholders will automatically
 be created. For example, this will create all items needed to set the
 region on the desired resource:
 ```python
@@ -114,6 +114,7 @@ The following functions are provided to create Protobuf structures:
 | ----- | ----------- |
 | Map | Create a new Protobuf map |
 | List | Create a new Protobuf list |
+| Unknown | Create a new Protobuf unknown placeholder |
 | Yaml | Create a new Protobuf structure from a yaml string |
 | Json | Create a new Protobuf structure from a json string |
 | Base64Encode | Encode a string into base 64 |

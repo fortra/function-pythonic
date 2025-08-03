@@ -4,7 +4,6 @@ warnings.filterwarnings('ignore', module='^google[.]protobuf[.]runtime_version$'
 
 import pathlib
 import pytest
-import yaml
 from crossplane.function.proto.v1 import run_function_pb2 as fnv1
 from google.protobuf import json_format
 
@@ -22,7 +21,7 @@ from tests import utils
 )
 @pytest.mark.asyncio
 async def test_run_function(fn_case):
-    test = yaml.safe_load(fn_case.read_text())
+    test = utils.yaml_load(fn_case.read_text())
 
     request = fnv1.RunFunctionRequest(
         observed=fnv1.State(
@@ -38,20 +37,20 @@ async def test_run_function(fn_case):
         ),
     )
     utils.message_merge(request, test['request'])
+    if 'response' not in test:
+        test['response'] = {}
     utils.map_defaults(test['response'], {
         'meta': {
             'ttl': {
                 'seconds': 60,
             },
         },
-        'context': {}
+        'context': {},
+        'desired': {},
     })
 
     response = utils.message_dict(
         await fn.FunctionRunner().RunFunction(request, None)
     )
-
-    #print(yaml.dump(response))
-    #assert False
 
     assert response == test['response']

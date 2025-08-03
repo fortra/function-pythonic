@@ -1,0 +1,46 @@
+request:
+  context:
+    apiextensions.crossplane.io/environment:
+      complex:
+        a: b
+        c:
+          d: e
+          f: '1'
+  input:
+    composite: |
+      class Composite(BaseComposite):
+        def compose(self):
+          self.environment.update = 'environment'
+          self.environment.nestedEnvUpdate.hello = 'world'
+          self.environment.array = ['1', '2']
+          self.context['other-context-key'].complex = self.environment.complex
+          self.context.newKey.hello = 'world'
+          self.status.fromEnv = self.environment.complex.c.d
+
+response:
+  context:
+    apiextensions.crossplane.io/environment:
+      complex:
+        a: b
+        c:
+          d: e
+          f: '1'
+      update: environment
+      nestedEnvUpdate:
+        hello: world
+      array:
+      - '1'
+      - '2'
+    other-context-key:
+      complex:
+        a: b
+        c:
+          d: e
+          f: '1'
+    newKey:
+      hello: world
+  desired:
+    composite:
+      resource:
+        status:
+          fromEnv: e

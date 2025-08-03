@@ -1,0 +1,85 @@
+request:
+  observed:
+    composite:
+      resource:
+        status:
+          conditions:
+          - type: Ready
+            reason: xr foo
+            status: 'True'
+            lastTransitionTime: '2023-11-03T09:07:31Z'
+    resources:
+      project:
+        resource:
+          status:
+            atProvider:
+              id: abcdef
+            conditions:
+            - type: Ready
+              reason: foo
+              status: 'True'
+              lastTransitionTime: '2023-11-03T09:07:31Z'
+  input:
+    composite: |
+      class Composite(BaseComposite):
+        def compose(self):
+          self.status.compositeCondition = self.conditions.Ready
+          self.status.compositeNotFound = self.conditions.Other
+          self.status.composedCondition = self.resources.project.conditions.Ready
+          if self.resources.project.conditions.Ready.status:
+            self.status.projectId = self.resources.project.status.atProvider.id
+          self.status.pipeline = self.resources.project.conditions.Ready
+          self.status.nonResource = self.resources.whatever.conditions.Ready
+
+          self.conditions.TestCondition(False, 'InstallFail', 'failed to install')
+          self.conditions.ConditionTrue(True, 'TrueCondition', 'we are true', True)
+          self.conditions.DatabaseReady(True, 'Ready', 'Database is ready')
+
+response:
+  desired:
+    composite:
+      resource:
+        status:
+          compositeCondition:
+            type: Ready
+            reason: xr foo
+            message: ''
+            status: 'True'
+            lastTransitionTime: '2023-11-03T09:07:31Z'
+          compositeNotFound:
+            type: Other
+            message: ''
+            reason: ''
+            status: Unknown
+          composedCondition:
+            type: Ready
+            reason: foo
+            message: ''
+            status: 'True'
+            lastTransitionTime: '2023-11-03T09:07:31Z'
+          projectId: abcdef
+          pipeline:
+            type: Ready
+            reason: foo
+            message: ''
+            status: 'True'
+            lastTransitionTime: '2023-11-03T09:07:31Z'
+          nonResource:
+            type: Ready
+            reason: ''
+            message: ''
+            status: Unknown
+  conditions:
+  - type: TestCondition
+    reason: InstallFail
+    message: failed to install
+    status: 3
+  - type: ConditionTrue
+    reason: TrueCondition
+    message: we are true
+    status: 2
+    target: 2
+  - type: DatabaseReady
+    reason: Ready
+    message: Database is ready
+    status: 2

@@ -1,0 +1,21 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xclusters.example.joebowbeer.com
+spec:
+  group: example.joebowbeer.com
+  names:
+    kind: XCluster
+    plural: xclusters
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties: {}

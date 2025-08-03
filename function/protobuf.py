@@ -22,16 +22,13 @@ import yaml
 
 
 def Map(**kwargs):
-    values = Values(None, None, google.protobuf.struct_pb2.Struct(), Values.Type.MAP)
-    for key, value in kwargs.items():
-        values[key] = value
-    return values
+    return Values(None, None, google.protobuf.struct_pb2.Struct(), Values.Type.MAP)(**kwargs)
 
 def List(*args):
-    values = Values(None, None, google.protobuf.struct_pb2.ListValue(), Values.Type.LIST)
-    for ix, value in enumerate(args):
-        values[ix] = value
-    return values
+    return Values(None, None, google.protobuf.struct_pb2.ListValue(), Values.Type.LIST)(*args)
+
+def Unknown():
+    return Values(None, None, None, Values.Type.UNKNOWN)
 
 def Yaml(string, readOnly=None):
     return _Object(yaml.safe_load(string), readOnly)
@@ -102,7 +99,7 @@ class Message:
         return key in self._descriptor.fields_by_name
 
     def __iter__(self):
-        for key in self._descriptor.fields_by_name:
+        for key in sorted(self._descriptor.fields_by_name):
             yield key, self[key]
 
     def __hash__(self):
@@ -241,7 +238,7 @@ class MapMessage:
 
     def __iter__(self):
         if self._messages is not None:
-            for key in self._messages:
+            for key in sorted(self._messages):
                 yield key, self[key]
 
     def __hash__(self):
@@ -544,16 +541,12 @@ class Values:
                 for value in self:
                     if item == value:
                         return True
-                if isinstance(item, Values) and item._isUnknown:
-                    return bool(self._unknowns)
         return False
 
     def __iter__(self):
         if self._values is not None:
             if self._isMap:
-                for key in self._values:
-                    yield key, self[key]
-                for key in self._unknowns:
+                for key in sorted(set(self._values) | self._unknowns):
                     yield key, self[key]
             elif self._isList:
                 for ix in range(len(self._values)):
@@ -618,7 +611,10 @@ class Values:
                     raise ValueError('Invalid key, must be a str for maps')
                 self.__dict__['_type'] = self.Type.MAP
             if self._values is None:
-                self.__dict__['_values'] = self._parent._create_child(self._key, self._type)
+                if self._parent is None:
+                    self.__dict__['_values'] = google.protobuf.struct_pb2.Struct()
+                else:
+                    self.__dict__['_values'] = self._parent._create_child(self._key, self._type)
             struct_value = self._values.fields[key]
         elif isinstance(key, int):
             if not self._isList:
@@ -626,7 +622,10 @@ class Values:
                     raise ValueError('Invalid key, must be an int for lists')
                 self.__dict__['_type'] = self.Type.LIST
             if self._values is None:
-                self.__dict__['_values'] = self._parent._create_child(self._key, self._type)
+                if self._parent is None:
+                    self.__dict__['_values'] = google.protobuf.struct_pb2.ListValue()
+                else:
+                    self.__dict__['_values'] = self._parent._create_child(self._key, self._type)
             while key >= len(self._values.values):
                 self._values.values.add()
             struct_value = self._values.values[key]
@@ -671,13 +670,6 @@ class Values:
             self._values.Clear()
             for key in range(len(args)):
                 self[key] = args[key]
-        else:
-            if not self._isMap:
-                if not self._isUnknown:
-                    self.__dict__['_type'] = self.Type.MAP # Assume a map is wanted
-            if self._values is None:
-                self.__dict__['_values'] = self._parent._create_child(self._key, self._type)
-            self._values.Clear()
         return self
 
     def __setattr__(self, key, value):
@@ -692,7 +684,10 @@ class Values:
                     raise ValueError('Invalid key, must be a str for maps')
                 self.__dict__['_type'] = self.Type.MAP
             if self._values is None:
-                self.__dict__['_values'] = self._parent._create_child(self._key, self._type)
+                if self._parent is None:
+                    self.__dict__['_values'] = google.protobuf.struct_pb2.Struct()
+                else:
+                    self.__dict__['_values'] = self._parent._create_child(self._key, self._type)
             values = self._values.fields
         elif isinstance(key, int):
             if not self._isList:
@@ -700,7 +695,10 @@ class Values:
                     raise ValueError('Invalid key, must be an int for lists')
                 self.__dict__['_type'] = self.Type.LIST
             if self._values is None:
-                self.__dict__['_values'] = self._parent._create_child(self._key, self._type)
+                if self._parent is None:
+                    self.__dict__['_values'] = google.protobuf.struct_pb2.ListValue()
+                else:
+                    self.__dict__['_values'] = self._parent._create_child(self._key, self._type)
             values = self._values.values
             while key >= len(values):
                 values.add()
@@ -720,25 +718,17 @@ class Values:
             values[key].number_value = value
         elif isinstance(value, dict):
             values[key].struct_value.Clear()
-            sv = self[key]
-            for k, v in value.items():
-                sv[k] = v
+            self[key](**value)
         elif isinstance(value, (list, tuple)):
             values[key].list_value.Clear()
-            sv = self[key]
-            for k, v in enumerate(value):
-                sv[k] = v
+            self[key](*value)
         elif isinstance(value, Values):
             if value._isMap:
                 values[key].struct_value.Clear()
-                sv = self[key]
-                for k, v in value:
-                    sv[k] = v
+                self[key](**{k:v for k,v in value})
             elif value._isList:
                 values[key].list_value.Clear()
-                sv = self[key]
-                for k, v in enumerate(value):
-                    sv[k] = v
+                self[key](*[v for v in value])
             else:
                 self._unknowns.add(key)
                 if self._isMap:
@@ -780,7 +770,7 @@ class Values:
                     del self._values[key]
                 self._cache.pop(key, None)
                 self._unknowns.discard(key)
-                for ix in sorted([ix in self._unknowns]):
+                for ix in sorted(self._unknowns):
                     if ix > key:
                         self._cache.pop(ix, None)
                         self._unknowns.add(ix - 1)

@@ -1,0 +1,6 @@
+request:
+  input:
+    composite: |
+      class Composite(BaseComposite):
+        def compose(self):
+          pass

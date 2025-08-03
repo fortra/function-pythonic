@@ -1,0 +1,36 @@
+request:
+  observed:
+    composite:
+      resource:
+        spec:
+          yamlBlob: |
+            key1: value1
+            key2: value2
+            key3: value3
+          complexDictionary:
+            list:
+            - abc
+            - def
+            scalar1: true
+            scalar2: text
+            scalar3: 123
+  input:
+    composite: |
+      class Composite(BaseComposite):
+        def compose(self):
+          self.status.fromYaml = Yaml(self.spec.yamlBlob).key2
+          self.status.toYaml = format(self.spec.complexDictionary, 'yaml')
+
+response:
+  desired:
+    composite:
+      resource:
+        status:
+          fromYaml: value2
+          toYaml: |
+            list:
+            - abc
+            - def
+            scalar1: true
+            scalar2: text
+            scalar3: 123

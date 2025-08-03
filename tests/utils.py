@@ -1,5 +1,22 @@
 
+import datetime
+import yaml
 from google.protobuf.struct_pb2 import Struct, ListValue
+
+
+def yaml_load(text):
+    return _yaml_clean(yaml.safe_load(text))
+
+def _yaml_clean(values):
+    if isinstance(values, dict):
+        for field, value in values.items():
+            values[field] = _yaml_clean(value)
+    elif isinstance(values, (list, tuple)):
+        for ix, value in enumerate(values):
+            values[ix] = _yaml_clean(value)
+    elif isinstance(values, datetime.datetime):
+        values = values.isoformat().replace('+00:00', 'Z')
+    return values
 
 
 def message_merge(message, values):
@@ -19,7 +36,17 @@ def message_merge(message, values):
                     else:
                         message_merge(current, value)
             else:
-                list_merge(current, value)
+                if isinstance(current, ListValue):
+                    list_merge(current, value)
+                else:
+                    descriptor = message.DESCRIPTOR.fields_by_name.get(field)
+                    if descriptor.label == descriptor.LABEL_REPEATED:
+                        if descriptor.message_type.GetOptions().map_entry:
+                            message_map_merge(descriptor, current, value)
+                        else:
+                            message_list_merge(current, value)
+                    else:
+                        message_merge(current, value)
             continue
         setattr(message, field, value)
 
@@ -154,6 +181,11 @@ def message_dict(message):
                     value = message_list_list(field, value)
             else:
                 value = message_dict(value)
+        elif field.type in (field.TYPE_DOUBLE, field.TYPE_FLOAT):
+            if value.is_integer():
+                value = int(value)
+        elif field.type == field.TYPE_BYTES:
+            value = value.decode()
         result[field.name] = value
     return result
 
@@ -166,13 +198,11 @@ def message_map_dict(descriptor, message):
                 value = map_dict(value)
             elif descriptor.message_type.name == 'ListValue':
                 value = list_list(value)
-            elif descriptor.label == descriptor.LABEL_REPEATED:
-                if descriptor.message_type.GetOptions().map_entry:
-                    value = message_map_dict(value)
-                else:
-                    value = message_list_list(value)
             else:
                 value = message_dict(value)
+        elif descriptor.type in (descriptor.TYPE_DOUBLE, descriptor.TYPE_FLOAT):
+            if value.is_integer():
+                value = int(value)
         elif descriptor.type == descriptor.TYPE_BYTES:
             value = value.decode()
         result[field] = value
@@ -181,18 +211,16 @@ def message_map_dict(descriptor, message):
 def message_list_list(descriptor, message):
     result = []
     for value in message:
-        if descriptor.type == descrptor.TYPE_MESSAGE:
+        if descriptor.type == descriptor.TYPE_MESSAGE:
             if descriptor.message_type.name == 'Struct':
                 value = map_dict(value)
             elif descriptor.message_type.name == 'ListValue':
                 value = list_list(value)
-            elif descriptor.label == descriptor.LABEL_REPEATED:
-                if descriptor.message_type.GetOptions().map_entry:
-                    value = message_map_dict(value)
-                else:
-                    value = message_list_list(value)
             else:
                 value = message_dict(value)
+        elif descriptor.type in (descriptor.TYPE_DOUBLE, descriptor.TYPE_FLOAT):
+            if value.is_integer():
+                value = int(value)
         elif descriptor.type == descriptor.TYPE_BYTES:
             value = value.decode()
         result.append(value)
@@ -205,6 +233,9 @@ def map_dict(message):
             value = map_dict(value)
         elif isinstance(value, ListValue):
             value = list_list(value)
+        elif isinstance(value, float):
+            if value.is_integer():
+                value = int(value)
         result[field] = value
     return result
 
@@ -215,5 +246,8 @@ def list_list(message):
             value = map_dict(value)
         elif isinstance(value, ListValue):
             value = list_list(value)
+        elif isinstance(value, float):
+            if value.is_integer():
+                value = int(value)
         result.append(value)
     return result

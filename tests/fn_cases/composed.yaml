@@ -1,0 +1,57 @@
+request:
+  observed:
+    composite:
+      resource:
+        metadata:
+          name: my-app
+        spec:
+          image: nginx
+    resources:
+      flexServer:
+        resource:
+          status:
+            atProvider:
+              id: abcdef
+            conditions:
+            - type: Ready
+              reason: foo
+              status: 'True'
+              lastTransitionTime: '2023-11-03T09:07:31Z'
+  input:
+    composite: |
+      apiVersion = 'dbforpostgresql.azure.upbound.io/v1beta1'
+      class Composite(BaseComposite):
+        def compose(self):
+          self.ttl = (5 * 60) + 30
+          s = self.resources.flexServer(apiVersion, 'FlexibleServer')
+          s.spec.providerConfigRef.name = 'my-provider-cfg'
+          s.spec.forProvider.storageMb = 32768
+          c = self.resources.flexServerConfig(apiVersion, 'FlexibleServerConfiguration')
+          c.spec.providerConfigRef.name = 'my-provider-cfg'
+          c.spec.forProvider.serverId = s.status.atProvider.id
+
+response:
+  meta:
+    ttl:
+      seconds: 330
+  desired:
+    resources:
+      flexServer:
+        resource:
+          apiVersion: dbforpostgresql.azure.upbound.io/v1beta1
+          kind: FlexibleServer
+          spec:
+            providerConfigRef:
+              name: my-provider-cfg
+            forProvider:
+              storageMb: 32768
+        ready: 1
+      flexServerConfig:
+        resource:
+          apiVersion: dbforpostgresql.azure.upbound.io/v1beta1
+          kind: FlexibleServerConfiguration
+          spec:
+            providerConfigRef:
+              name: my-provider-cfg
+            forProvider:
+              serverId: abcdef

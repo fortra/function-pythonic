@@ -100,12 +100,12 @@ class FunctionRunner(grpcv1.FunctionRunnerService):
         return response
 
 
-
 class Module:
     def __init__(self):
         self.BaseComposite = function.composite.BaseComposite
         self.Map = function.protobuf.Map
         self.List = function.protobuf.List
+        self.Unknown = function.protobuf.Unknown
         self.Yaml = function.protobuf.Yaml
         self.Json = function.protobuf.Json
         self.B64Encode = lambda s: base64.b64encode(s.encode('utf-8')).decode('utf-8')

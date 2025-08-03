@@ -469,7 +469,7 @@ class Condition(function.protobuf.ProtobufValue):
             'message': self.message or '',
         }
         time = self.lastTransitionTime
-        if time is not None:
+        if time:
             value['lastTransitionTime'] = time.isoformat().replace('+00:00', 'Z')
         return value
 
@@ -535,7 +535,7 @@ class Condition(function.protobuf.ProtobufValue):
         for observed in self._conditions._observed.resource.status.conditions:
             if observed.type == self.type:
                 time = observed.lastTransitionTime
-                if time is not None:
+                if time:
                     return datetime.datetime.fromisoformat(time)
         return None
 

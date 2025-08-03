@@ -23,7 +23,6 @@ spec:
             s = self.resources.flexServer(apiVersion, 'FlexibleServer')
             s.spec.providerConfigRef.name = 'my-provider-cfg'
             s.spec.forProvider.storageMb = 32768
-            if s.status.atProvider.id:
-              c = self.resources.flexServerConfig(apiVersion, 'FlexibleServerConfiguration')
-              c.spec.providerConfigRef.name = 'my-provider-cfg'
-              c.spec.forProvider.serverId = s.status.atProvider.id
+            c = self.resources.flexServerConfig(apiVersion, 'FlexibleServerConfiguration')
+            c.spec.providerConfigRef.name = 'my-provider-cfg'
+            c.spec.forProvider.serverId = s.status.atProvider.id

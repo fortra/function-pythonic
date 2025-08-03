@@ -1,0 +1,95 @@
+request:
+  observed:
+    composite:
+      resource:
+        metadata:
+          name: my-app
+        spec:
+          image: nginx
+    resources:
+      deployment:
+        resource:
+          status:
+            availableReplicas: 2
+            conditions:
+            - type: Available
+              status: 'True'
+              reason: MinimumReplicasAvailable
+              message: Deployment has minimum availability
+      service:
+        resource:
+          spec:
+            clusterIP: 10.96.196.65
+  input:
+    composite: |
+        class Composite(BaseComposite):
+          def compose(self):
+            labels = {'example.crossplane.io/app': self.metadata.name}
+
+            d = self.resources.deployment('apps/v1', 'Deployment')
+            d.metadata.labels = labels
+            d.spec.replicas = 2
+            d.spec.selector.matchLabels = labels
+            d.spec.template.metadata.labels = labels
+            d.spec.template.spec.containers[0].name = 'app'
+            d.spec.template.spec.containers[0].image = self.spec.image
+            d.spec.template.spec.containers[0].ports[0].containerPort = 80
+            d.ready = d.conditions.Available.status
+
+            s = self.resources.service('v1', 'Service')
+            s.metadata.labels = labels
+            s.spec.selector = labels
+            s.spec.ports[0].protocol = 'TCP'
+            s.spec.ports[0].port = 8080
+            s.spec.ports[0].targetPort = 80
+            s.ready = s.observed.spec.clusterIP
+
+            self.status.replicas = d.status.availableReplicas
+            self.status.address = s.observed.spec.clusterIP
+
+response:
+  desired:
+    composite:
+      resource:
+        status:
+          replicas: 2
+          address: 10.96.196.65
+    resources:
+      deployment:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            labels:
+              example.crossplane.io/app: my-app
+          spec:
+            replicas: 2
+            selector:
+              matchLabels:
+                example.crossplane.io/app: my-app
+            template:
+              metadata:
+                labels:
+                  example.crossplane.io/app: my-app
+              spec:
+                containers:
+                - image: nginx
+                  name: app
+                  ports:
+                  - containerPort: 80
+        ready: 1
+      service:
+        resource:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            labels:
+              example.crossplane.io/app: my-app
+          spec:
+            selector:
+              example.crossplane.io/app: my-app
+            ports:
+            - protocol: TCP
+              port: 8080
+              targetPort: 80
+        ready: 1

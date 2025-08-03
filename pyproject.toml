@@ -43,20 +43,29 @@ validate-bump = false            # Allow going from 0.0.0.dev0+x to 0.0.0.dev0+y
 type = "virtual"
 path = ".venv-default"
 dependencies = ["ipython==9.1.0"]
-scripts = { development = "python function/main.py --insecure --debug" }
+[tool.hatch.envs.default.scripts]
+development = "python function/main.py --insecure --debug"
 
 [tool.hatch.envs.lint]
 type = "virtual"
 detached = true
 path = ".venv-lint"
 dependencies = ["ruff==0.11.5"]
-scripts = { check = "ruff check function tests && ruff format --diff function tests" }
+[tool.hatch.envs.lint.scripts]
+check = "ruff check function tests && ruff format --diff function tests"
 
 [tool.hatch.envs.test]
 type = "virtual"
 path = ".venv-test"
-dependencies = ["pytest==8.4.1", "pytest-asyncio==1.1.0"]
-scripts = { unit = "python -m pytest tests" }
+dependencies = [
+  "pytest==8.4.1",
+  "pytest-asyncio==1.1.0",
+  "pytest-cov==6.2.1",
+]
+[tool.hatch.envs.test.scripts]
+all = "pytest tests/ --verbose --verbose --cov --cov-report=term --cov-report=html:reports"
+protobuf = "pytest tests/test_protobuf*.py --verbose --verbose --cov --cov-report=term --cov-report=html:reports"
+ci = "pytest tests --junitxml=reports/pytest-junit.xml --cov --cov-report=xml:reports/pytest-coverage.xml"
 
 [tool.ruff]
 target-version = "py311"

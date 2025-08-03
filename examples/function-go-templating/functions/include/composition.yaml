@@ -8,7 +8,6 @@ spec:
     kind: XR
   mode: Pipeline
   pipeline:
-
   - step: render-templates
     functionRef:
       name: function-pythonic
