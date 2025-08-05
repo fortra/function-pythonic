@@ -90,7 +90,7 @@ class Credentials:
 
 class Resources:
     def __init__(self, composite):
-        self._composite = composite
+        self.__dict__['_composite'] = composite
 
     def __getattr__(self, key):
         return self[key]
@@ -110,6 +110,13 @@ class Resources:
     def __iter__(self):
         for name, resource in self._composite.response.desired.resources:
             yield name, self[name]
+
+    def __setattr__(self, key, resource):
+        self[key] = resource
+
+    def __setitem__(self, key, resource):
+        print('SETITEM', key, resource)
+        self._composite.response.desired.resources[key].resource = resource
 
     def __delattr__(self, key):
         del self[key]

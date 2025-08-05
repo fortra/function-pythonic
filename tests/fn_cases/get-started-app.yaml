@@ -3,6 +3,7 @@ request:
     composite:
       resource:
         metadata:
+          namespace: my-namespace
           name: my-app
         spec:
           image: nginx
@@ -26,7 +27,7 @@ request:
           def compose(self):
             labels = {'example.crossplane.io/app': self.metadata.name}
 
-            d = self.resources.deployment('apps/v1', 'Deployment')
+            d = self.resources.deployment('apps/v1', 'Deployment', self.metadata.namespace)
             d.metadata.labels = labels
             d.spec.replicas = 2
             d.spec.selector.matchLabels = labels
@@ -36,7 +37,7 @@ request:
             d.spec.template.spec.containers[0].ports[0].containerPort = 80
             d.ready = d.conditions.Available.status
 
-            s = self.resources.service('v1', 'Service')
+            s = self.resources.service('v1', 'Service', self.metadata.namespace)
             s.metadata.labels = labels
             s.spec.selector = labels
             s.spec.ports[0].protocol = 'TCP'
@@ -62,6 +63,7 @@ response:
           metadata:
             labels:
               example.crossplane.io/app: my-app
+            namespace: my-namespace
           spec:
             replicas: 2
             selector:
@@ -85,6 +87,7 @@ response:
           metadata:
             labels:
               example.crossplane.io/app: my-app
+            namespace: my-namespace
           spec:
             selector:
               example.crossplane.io/app: my-app

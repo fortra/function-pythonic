@@ -1,0 +1,37 @@
+request:
+  input:
+    composite: |
+      class Composite(BaseComposite):
+        def compose(self):
+
+          self.resources.bucket1.apiVersion = 's3.aws.upbound.io/v1beta2'
+          self.resources.bucket1.kind = 'Bucket'
+          self.resources.bucket1.spec.forProvider.region = 'us-east-1'
+
+          self.resources.bucket2 = {
+            'apiVersion': 's3.aws.upbound.io/v1beta2',
+            'kind': 'Bucket',
+            'spec': {
+              'forProvider': {
+                'region': 'us-east-1',
+              },
+            },
+          }
+
+response:
+  desired:
+    resources:
+      bucket1:
+        resource:
+          apiVersion: s3.aws.upbound.io/v1beta2
+          kind: Bucket
+          spec:
+            forProvider:
+              region: us-east-1
+      bucket2:
+        resource:
+          apiVersion: s3.aws.upbound.io/v1beta2
+          kind: Bucket
+          spec:
+            forProvider:
+              region: us-east-1
