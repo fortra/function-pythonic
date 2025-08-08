@@ -10,7 +10,7 @@ import sys
 import pip._internal.cli.main
 from crossplane.function import logging, runtime
 
-import function.fn
+from . import function
 
 
 def main():
@@ -39,6 +39,11 @@ def main():
         help='Pip install command to install additional Python packages.'
     )
     parser.add_argument(
+        '--python-path',
+        action='append',
+        help='Filing system directories to add to the python path',
+    )
+    parser.add_argument(
         '--allow-oversize-protos',
         action='store_true',
         help='Allow oversized protobuf messages'
@@ -50,6 +55,10 @@ def main():
     if args.pip_install:
         pip._internal.cli.main.main(['install', *shlex.split(args.pip_install)])
 
+    if args.python_path:
+        for path in reversed(args.python_path):
+            sys.path.insert(0, path)
+
     if args.allow_oversize_protos:
         from google.protobuf.internal import api_implementation
         if api_implementation._c_module:
@@ -57,7 +66,7 @@ def main():
 
     logging.configure(logging.Level.DEBUG if args.debug else logging.Level.INFO)
     runtime.serve(
-        function.fn.FunctionRunner(),
+        function.FunctionRunner(),
         args.address,
         creds=runtime.load_credentials(args.tls_certs_dir),
         insecure=args.insecure,

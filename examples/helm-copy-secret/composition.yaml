@@ -1,11 +1,11 @@
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: xclusters.example.joebowbeer.com
+  name: vclusters.example.joebowbeer.com
 spec:
   compositeTypeRef:
     apiVersion: example.joebowbeer.com/v1alpha1
-    kind: XCluster
+    kind: VCluster
   mode: Pipeline
   pipeline:
   - step: pythonic
@@ -38,18 +38,14 @@ spec:
             release.spec.forProvider.values.controlPlane.proxy.extraSANs[0] = f'{name}.{namespace}'
 
             secret_name = f'vc-{name}'
-            # This will work once crossplane-sdk-python is updated to the v2 function api
-            #vcluster_secrets = self.requireds.secrets('v1', 'Secret', namespace, secret_name)
-            vcluster_secrets = self.requireds.secrets('v1', 'Secret', labels={'vcluster-name':name})
-            for secret in vcluster_secrets:
-              if secret.metadata.namespace == namespace and secret.metadata.name == secret_name:
-                argocd_secret = self.resources.secret('v1', 'Secret', 'argocd', secret_name)
-                argocd_secret.metadata.labels['argocd.argoproj.io/secret-type'] = 'cluster'
-                argocd_secret.type = 'Opaque'
-                argocd_secret.data.name = B64Encode(name)
-                argocd_secret.data.server = B64Encode(f'https://{name}.{namespace}:443')
-                argocd_secret.data.config = B64Encode(format(argcd_secret_config(secret), 'json'))
-                argocd_secret.ready = argocd_secret.observed.data
-                break
+            vcluster_secret = self.requireds.vcluster_secret('v1', 'Secret', namespace, secret_name)[0]
+            if vcluster_secret:
+              argocd_secret = self.resources.argocd_secret('v1', 'Secret', 'default', secret_name)
+              argocd_secret.metadata.labels['argocd.argoproj.io/secret-type'] = 'cluster'
+              argocd_secret.type = 'Opaque'
+              argocd_secret.data.name = B64Encode(name)
+              argocd_secret.data.server = B64Encode(f'https://{name}.{namespace}:443')
+              argocd_secret.data.config = B64Encode(format(argcd_secret_config(vcluster_secret), 'json'))
+              argocd_secret.ready = argocd_secret.observed
             else:
               self.ready = False

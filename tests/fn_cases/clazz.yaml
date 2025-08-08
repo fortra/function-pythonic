@@ -1,0 +1,14 @@
+request:
+  input:
+    composite: tests.fn_cases.clazz.TestComposite
+
+response:
+  desired:
+    resources:
+      bucket:
+        resource:
+          apiVersion: s3.aws.upbound.io/v1beta2
+          kind: Bucket
+          spec:
+            forProvider:
+              region: us-east-1

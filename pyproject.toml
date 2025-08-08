@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "function"
-description = 'A Crossplane Function which composes Composites'
+name = "crossplane-function-pythonic"
+description = 'A Python centric Crossplane Function'
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
 license = "Apache-2.0"
@@ -18,7 +18,7 @@ classifiers = [
 ]
 
 dependencies = [
-  "crossplane-function-sdk-python==0.8.0",
+  "crossplane-function-sdk-python==0.9.0",
   "pyyaml==6.0.2",
 ]
 
@@ -30,13 +30,13 @@ Issues = "https://github.com/fortra/function-pythonic/issues"
 Source = "https://github.com/fortra/function-pythonic"
 
 [project.scripts]
-function = "function.main:main"
+pythonic = "crossplane.pythonic.main:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["function"]
+packages = ["crossplane"]
 
 [tool.hatch.version]
-path = "function/__version__.py"
+path = "crossplane/pythonic/__version__.py"
 validate-bump = false            # Allow going from 0.0.0.dev0+x to 0.0.0.dev0+y.
 
 [tool.hatch.envs.default]
@@ -44,7 +44,7 @@ type = "virtual"
 path = ".venv-default"
 dependencies = ["ipython==9.1.0"]
 [tool.hatch.envs.default.scripts]
-development = "python function/main.py --insecure --debug --allow-oversize-protos"
+development = "python crossplane/pythonic/main.py --insecure --debug"
 
 [tool.hatch.envs.lint]
 type = "virtual"
@@ -52,7 +52,7 @@ detached = true
 path = ".venv-lint"
 dependencies = ["ruff==0.11.5"]
 [tool.hatch.envs.lint.scripts]
-check = "ruff check function tests && ruff format --diff function tests"
+check = "ruff check crossplane tests && ruff format --diff crossplane tests"
 
 [tool.hatch.envs.test]
 type = "virtual"
@@ -69,7 +69,7 @@ ci = "pytest tests --verbose --verbose --junitxml=reports/pytest-junit.xml --cov
 
 [tool.ruff]
 target-version = "py311"
-exclude = ["function/proto/*"]
+exclude = ["crossplane/pythonic/proto/*"]
 
 [tool.ruff.lint]
 select = [
@@ -108,7 +108,7 @@ ignore = ["ISC001"] # Ruff warns this is incompatible with ruff format.
 "tests/*" = ["D"] # Don't require docstrings for tests.
 
 [tool.ruff.lint.isort]
-known-first-party = ["function"]
+known-first-party = ["crossplane"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

@@ -7,7 +7,7 @@ import pytest
 from crossplane.function.proto.v1 import run_function_pb2 as fnv1
 from google.protobuf import json_format
 
-from function import fn
+from crossplane.pythonic import function
 from tests import utils
 
 
@@ -50,7 +50,7 @@ async def test_run_function(fn_case):
     })
 
     response = utils.message_dict(
-        await fn.FunctionRunner().RunFunction(request, None)
+        await function.FunctionRunner().RunFunction(request, None)
     )
 
     assert response == test['response']

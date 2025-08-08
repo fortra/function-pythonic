@@ -27,17 +27,17 @@ RUN \
     && /venv/build/bin/pip install hatch \
     && /venv/build/bin/hatch build -t wheel /whl
 
-# Create a fresh venv and install only the function wheel into it.
+# Create a fresh venv and install only the pythonic wheel into it.
 #RUN --mount=type=cache,target=/root/.cache/pip \
 RUN \
     python3 -m venv /venv/fn \
     && /venv/fn/bin/pip install /whl/*.whl
 
-# Copy the function venv to our runtime stage. It's important that the path be
+# Copy the pythonic venv to our runtime stage. It's important that the path be
 # the same as in the build stage, to avoid shebang paths and symlinks breaking. 
 FROM gcr.io/distroless/python3-debian12 AS image
 WORKDIR /
 USER nonroot:nonroot
 COPY --from=build --chown=nonroot:nonroot /venv/fn /venv/fn
 EXPOSE 9443
-ENTRYPOINT ["/venv/fn/bin/function"]
+ENTRYPOINT ["/venv/fn/bin/pythonic"]

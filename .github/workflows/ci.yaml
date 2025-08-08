@@ -127,13 +127,13 @@ jobs:
           build-args:
             PYTHON_VERSION=${{ env.PYTHON_VERSION }}
           outputs: type=docker,dest=runtime-${{ matrix.arch }}.tar
-      
+
       - name: Setup the Crossplane CLI
-        run: "curl -sL https://raw.githubusercontent.com/crossplane/crossplane/master/install.sh | sh"
+        run: "mkdir bin && cd bin && curl -sL https://raw.githubusercontent.com/crossplane/crossplane/master/install.sh | sh"
 
       - name: Build Package
-        run: ./crossplane xpkg build --package-file=${{ matrix.arch }}.xpkg --package-root=package/ --embed-runtime-image-tarball=runtime-${{ matrix.arch }}.tar
-      
+        run: bin/crossplane xpkg build --package-file=${{ matrix.arch }}.xpkg --package-root=package/ --embed-runtime-image-tarball=runtime-${{ matrix.arch }}.tar
+
       - name: Upload Single-Platform Package
         uses: actions/upload-artifact@v4
         with:
@@ -165,7 +165,15 @@ jobs:
           merge-multiple: true
 
       - name: Setup the Crossplane CLI
-        run: "curl -sL https://raw.githubusercontent.com/crossplane/crossplane/master/install.sh | sh"
+        run: "mkdir bin && cd bin && curl -sL https://raw.githubusercontent.com/crossplane/crossplane/master/install.sh | sh"
+
+      # If a version wasn't explicitly passed as a workflow_dispatch input we
+      # default to version v0.0.0-<git-commit-date>-<git-short-sha>, for example
+      # v0.0.0-20231101115142-1091066df799. This is a simple implementation of
+      # Go's pseudo-versions: https://go.dev/ref/mod#pseudo-versions.
+      - name: Set Default Multi-Platform Package Version
+        if: env.XPKG_VERSION == ''
+        run: echo "XPKG_VERSION=v0.0.0-$(date -d@$(git show -s --format=%ct) +%Y%m%d%H%M%S)-$(git rev-parse --short=12 HEAD)" >> $GITHUB_ENV
 
       # - name: Login to Upbound
       #   uses: docker/login-action@v3
@@ -175,17 +183,9 @@ jobs:
       #     username: ${{ secrets.XPKG_ACCESS_ID }}
       #     password: ${{ secrets.XPKG_TOKEN }}
 
-      # If a version wasn't explicitly passed as a workflow_dispatch input we
-      # default to version v0.0.0-<git-commit-date>-<git-short-sha>, for example
-      # v0.0.0-20231101115142-1091066df799. This is a simple implementation of
-      # Go's pseudo-versions: https://go.dev/ref/mod#pseudo-versions.
-      # - name: Set Default Multi-Platform Package Version
-      #   if: env.XPKG_VERSION == ''
-      #   run: echo "XPKG_VERSION=v0.0.0-$(date -d@$(git show -s --format=%ct) +%Y%m%d%H%M%S)-$(git rev-parse --short=12 HEAD)" >> $GITHUB_ENV
-
       # - name: Push Multi-Platform Package to Upbound
       #   if: env.XPKG_ACCESS_ID != ''
-      #   run: "./crossplane --verbose xpkg push --package-files $(echo *.xpkg|tr ' ' ,) ${{ env.XPKG }}:${{ env.XPKG_VERSION }}"
+      #   run: "bin/crossplane --verbose xpkg push --package-files $(echo *.xpkg|tr ' ' ,) ${{ env.XPKG }}:${{ env.XPKG_VERSION }}"
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -195,4 +195,4 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push Multi-Platform Package to GHCR
-        run: "./crossplane --verbose xpkg push --package-files $(echo *.xpkg|tr ' ' ,) ${{ env.CROSSPLANE_REGORG }}:${{ env.XPKG_VERSION }}"
+        run: "bin/crossplane --verbose xpkg push --package-files $(echo *.xpkg|tr ' ' ,) ${{ env.CROSSPLANE_REGORG }}:${{ env.XPKG_VERSION }}"

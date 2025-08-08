@@ -1,0 +1,10 @@
+apiVersion: pkg.crossplane.io/v1beta1
+kind: Function
+metadata:
+  name: function-pythonic
+spec:
+  package: ghcr.io/iciclespider/function-pythonic:v0.0.0-20250811193238-f8d5c82deb9b
+  runtimeConfigRef:
+    apiVersion: pkg.crossplane.io/v1beta1
+    kind: DeploymentRuntimeConfig
+    name: function-pythonic

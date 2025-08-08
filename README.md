@@ -35,6 +35,8 @@ spec:
             vpc.spec.forProvider.cidrBlock = self.spec.cidr
             self.status.vpcId = vpc.status.atProvider.vpcId
 ```
+In addtion to an inline script, the python implementation can be specified
+as the complete path to a python class. See [Filing system Composites](#filing-system-composites).
 
 ## Examples
 
@@ -269,6 +271,38 @@ spec:
       def compose(self):
         self.status.composite = 'Hello, World!'
 ```
+
+## Filing system Composites
+
+Composition Composite implementations can be coded in a stand alone python files
+by configuring the function-pythonic deployment with the code mounted into
+the package-runtime container, and then adding the mount point to the python
+path using the --python-path command line option.
+```yaml
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: function-pythonic
+spec:
+  deploymentTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: package-runtime
+            args:
+            - --debug
+            - --python-path
+            - /mnt/composites
+            volumeMounts:
+            - name: composites
+              mountPath: /mnt/composites
+          volumes:
+          - name: composites
+            configMap:
+              name: pythonic-composites
+```
+See the [filing-system](examples/filing-system) example.
 
 ## Install Additional Python Packages
 

@@ -1,0 +1,23 @@
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: function-pythonic
+spec:
+  deploymentTemplate:
+    spec:
+      selector: {}
+      template:
+        spec:
+          containers:
+          - name: package-runtime
+            args:
+            - --debug
+            - --python-path
+            - /mnt/composites
+            volumeMounts:
+            - name: composites
+              mountPath: /mnt/composites
+          volumes:
+          - name: composites
+            configMap:
+              name: pythonic-composites

@@ -2,7 +2,7 @@
 import datetime
 from crossplane.function.proto.v1 import run_function_pb2 as fnv1
 
-import function.protobuf
+from . import protobuf
 
 
 _notset = object()
@@ -10,8 +10,8 @@ _notset = object()
 
 class BaseComposite:
     def __init__(self, request, response, logger):
-        self.request = function.protobuf.Message(None, None, request.DESCRIPTOR, request, 'Function Request')
-        self.response = function.protobuf.Message(None, None, response.DESCRIPTOR, response)
+        self.request = protobuf.Message(None, None, request.DESCRIPTOR, request, 'Function Request')
+        self.response = protobuf.Message(None, None, response.DESCRIPTOR, response)
         self.logger = logger
         self.autoReady = True
         self.credentials = Credentials(self.request)
@@ -54,7 +54,7 @@ class BaseComposite:
     def ready(self, ready):
         if ready:
             ready = fnv1.Ready.READY_TRUE
-        elif ready == None or (isinstance(ready, function.protobuf.Values) and ready._isUnknown):
+        elif ready == None or (isinstance(ready, protobuf.Values) and ready._isUnknown):
             ready = fnv1.Ready.READY_UNSPECIFIED
         else:
             ready = fnv1.Ready.READY_FALSE
@@ -115,7 +115,6 @@ class Resources:
         self[key] = resource
 
     def __setitem__(self, key, resource):
-        print('SETITEM', key, resource)
         self._composite.response.desired.resources[key].resource = resource
 
     def __delattr__(self, key):
@@ -216,7 +215,7 @@ class Resource:
     def ready(self, ready):
         if ready:
             ready = fnv1.Ready.READY_TRUE
-        elif ready == None or (isinstance(ready, function.protobuf.Values) and ready._isUnknown):
+        elif ready == None or (isinstance(ready, protobuf.Values) and ready._isUnknown):
             ready = fnv1.Ready.READY_UNSPECIFIED
         else:
             ready = fnv1.Ready.READY_FALSE
@@ -422,7 +421,7 @@ class Result:
         if bool(self):
             if claim:
                 self._result.target = fnv1.Target.TARGET_COMPOSITE_AND_CLAIM
-            elif claim == None or (isinstance(claim, function.protobuf.Values) and claim._isUnknown):
+            elif claim == None or (isinstance(claim, protobuf.Values) and claim._isUnknown):
                 self._result.target = fnv1.Target.TARGET_UNSPECIFIED
             else:
                 self._result.target = fnv1.Target.TARGET_COMPOSITE
@@ -461,7 +460,7 @@ class Conditions:
         return Condition(self, type)
 
 
-class Condition(function.protobuf.ProtobufValue):
+class Condition(protobuf.ProtobufValue):
     def __init__(self, conditions, type):
         self._conditions = conditions
         self.type = type
@@ -509,7 +508,7 @@ class Condition(function.protobuf.ProtobufValue):
             condition.status = fnv1.Status.STATUS_CONDITION_TRUE
         elif status == None:
             condition.status = fnv1.Status.STATUS_CONDITION_UNKNOWN
-        elif isinstance(status, function.protobuf.Values) and status._isUnknown:
+        elif isinstance(status, protobuf.Values) and status._isUnknown:
             condition.status = fnv1.Status.STATUS_CONDITION_UNSPECIFIED
         else:
             condition.status = fnv1.Status.STATUS_CONDITION_FALSE
@@ -556,7 +555,7 @@ class Condition(function.protobuf.ProtobufValue):
         condition = self._find_condition(True)
         if claim:
             condition.target = fnv1.Target.TARGET_COMPOSITE_AND_CLAIM
-        elif claim == None or (isinstance(claim, function.protobuf.Values) and claim._isUnknown):
+        elif claim == None or (isinstance(claim, protobuf.Values) and claim._isUnknown):
             condition.target = fnv1.Target.TARGET_UNSPECIFIED
         else:
             condition.target = fnv1.Target.TARGET_COMPOSITE

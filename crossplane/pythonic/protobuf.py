@@ -6,7 +6,7 @@
 #
 #   region = request.observed.composite.resource.spec.region
 #
-# If any item in the path to the field does not exist, None is returned.
+# If any item in the path to the field does not exist an "Unknown" object is returned.
 # To set a field in the composite status:
 #
 #   response.desired.composite.resource.status.homepage.url = 'https://for.example.com'

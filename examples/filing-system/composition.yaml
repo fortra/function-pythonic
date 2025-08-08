@@ -1,0 +1,17 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: vclusters.example.joebowbeer.com
+spec:
+  compositeTypeRef:
+    apiVersion: example.joebowbeer.com/v1alpha1
+    kind: VCluster
+  mode: Pipeline
+  pipeline:
+  - step: pythonic
+    functionRef:
+      name: function-pythonic
+    input:
+      apiVersion: pythonic.fn.fortra.com/v1alpha1
+      kind: Composite
+      composite: vcluster.VClusterComposite

@@ -1,5 +1,5 @@
 
-from function import protobuf
+from crossplane.pythonic import protobuf
 
 
 def test_map():

@@ -2,6 +2,8 @@
 
 import asyncio
 import base64
+import builtins
+import importlib
 import inspect
 
 import grpc
@@ -9,8 +11,16 @@ import crossplane.function.logging
 import crossplane.function.response
 from crossplane.function.proto.v1 import run_function_pb2 as fnv1
 from crossplane.function.proto.v1 import run_function_pb2_grpc as grpcv1
-import function.composite
-import function.protobuf
+from .. import pythonic
+
+builtins.BaseComposite = pythonic.BaseComposite
+builtins.Map = pythonic.Map
+builtins.List = pythonic.List
+builtins.Unknown = pythonic.Unknown
+builtins.Yaml = pythonic.Yaml
+builtins.Json = pythonic.Json
+builtins.B64Encode = pythonic.B64Encode
+builtins.B64Decode = pythonic.B64Decode
 
 
 class FunctionRunner(grpcv1.FunctionRunnerService):
@@ -19,7 +29,7 @@ class FunctionRunner(grpcv1.FunctionRunnerService):
     def __init__(self):
         """Create a new FunctionRunner."""
         self.logger = crossplane.function.logging.get_logger()
-        self.modules = {}
+        self.clazzes = {}
 
     async def RunFunction(
         self, request: fnv1.RunFunctionRequest, _: grpc.aio.ServicerContext
@@ -52,23 +62,47 @@ class FunctionRunner(grpcv1.FunctionRunnerService):
                 return response
             composite = input['composite']
 
-        module = self.modules.get(composite)
-        if not module:
-            module = Module()
-            try:
-                exec(composite, module.__dict__)
-            except Exception as e:
-                crossplane.function.response.fatal(response, f"Exec exception: {e}")
-                logger.exception('Exec exception')
+        clazz = self.clazzes.get(composite)
+        if not clazz:
+            if '\n' in composite:
+                module = Module()
+                try:
+                    exec(composite, module.__dict__)
+                except Exception as e:
+                    crossplane.function.response.fatal(response, f"Exec exception: {e}")
+                    logger.exception('Exec exception')
+                    return response
+                composite = ['<script>', 'Composite']
+            else:
+                composite = composite.rsplit('.', 1)
+                if len(composite) == 1:
+                    crossplane.function.response.fatal(response, f"Composite class name does not include module: {composite[0]}")
+                    logger.error(f"Composite class name does not include module: {composite[0]}")
+                    return response
+                try:
+                    module = importlib.import_module(composite[0])
+                except Exception as e:
+                    crossplane.function.response.fatal(response, f"Import module exception: {e}")
+                    logger.exception('Import module exception')
+                    return response
+            clazz = getattr(module, composite[1], None)
+            if not clazz:
+                crossplane.function.response.fatal(response, f"{composite[0]} did not define: {composite[1]}")
+                logger.error(f"{composite[0]} did not define: {composite[1]}")
                 return response
-            if not hasattr(module, 'Composite') or not inspect.isclass(module.Composite):
-                crossplane.function.response.fatal(response, 'Function did not define "class Composite')
-                logger.error('Composite did not define "class Composite"')
+            composite = '.'.join(composite)
+            if not inspect.isclass(clazz):
+                crossplane.function.response.fatal(response, f"{composite} is not a class")
+                logger.error(f"{composite} is not a class")
                 return response
-            self.modules[composite] = module
+            if not issubclass(clazz, BaseComposite):
+                crossplane.function.response.fatal(response, f"{composite} is not a subclass of BaseComposite")
+                logger.error(f"{composite} is not a subclass of BaseComposite")
+                return response
+            self.clazzes[composite] = clazz
 
         try:
-            composite = module.Composite(request, response, logger)
+            composite = clazz(request, response, logger)
         except Exception as e:
             crossplane.function.response.fatal(response, f"Instatiate exception: {e}")
             logger.exception('Instatiate exception')
@@ -101,12 +135,4 @@ class FunctionRunner(grpcv1.FunctionRunnerService):
 
 
 class Module:
-    def __init__(self):
-        self.BaseComposite = function.composite.BaseComposite
-        self.Map = function.protobuf.Map
-        self.List = function.protobuf.List
-        self.Unknown = function.protobuf.Unknown
-        self.Yaml = function.protobuf.Yaml
-        self.Json = function.protobuf.Json
-        self.B64Encode = lambda s: base64.b64encode(s.encode('utf-8')).decode('utf-8')
-        self.B64Decode = lambda s: base64.b64decode(s.encode('utf-8')).decode('utf-8')
+    pass
