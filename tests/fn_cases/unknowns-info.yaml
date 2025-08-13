@@ -1,0 +1,55 @@
+request:
+  observed:
+    composite:
+      resource:
+        metadata:
+          name: my-app
+        spec:
+          image: nginx
+    resources:
+      flexServer:
+        resource:
+          status:
+            conditions:
+            - type: Ready
+              reason: Creating
+              status: 'False'
+              lastTransitionTime: '2023-11-03T09:07:31Z'
+  input:
+    composite: |
+      apiVersion = 'dbforpostgresql.azure.upbound.io/v1beta1'
+      class Composite(BaseComposite):
+        def compose(self):
+          self.unknownsFatal = False
+          self.ttl = (5 * 60) + 30
+          s = self.resources.flexServer(apiVersion, 'FlexibleServer')
+          s.spec.providerConfigRef.name = 'my-provider-cfg'
+          s.spec.forProvider.storageMb = 32768
+          c = self.resources.flexServerConfig(apiVersion, 'FlexibleServerConfiguration')
+          c.spec.providerConfigRef.name = 'my-provider-cfg'
+          c.spec.forProvider.serverId = s.status.atProvider.id
+
+response:
+  meta:
+    ttl:
+      seconds: 330
+  desired:
+    resources:
+      flexServer:
+        resource:
+          apiVersion: dbforpostgresql.azure.upbound.io/v1beta1
+          kind: FlexibleServer
+          spec:
+            providerConfigRef:
+              name: my-provider-cfg
+            forProvider:
+              storageMb: 32768
+  conditions:
+  - type: Unknowns
+    status: 3
+    reason: NewUnknowns
+    message: 'New Resources with unknown assignments: flexServerConfig'    
+  results:
+  - message: 'New Resources with unknown assignments: flexServerConfig'
+    reason: NewUnknowns
+    severity: 3

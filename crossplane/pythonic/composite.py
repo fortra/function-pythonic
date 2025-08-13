@@ -10,8 +10,8 @@ _notset = object()
 
 class BaseComposite:
     def __init__(self, request, response, logger):
-        self.request = protobuf.Message(None, None, request.DESCRIPTOR, request, 'Function Request')
-        self.response = protobuf.Message(None, None, response.DESCRIPTOR, response)
+        self.request = protobuf.Message(None, 'request', request.DESCRIPTOR, request, 'Function Request')
+        self.response = protobuf.Message(None, 'response', response.DESCRIPTOR, response)
         self.logger = logger
         self.autoReady = True
         self.credentials = Credentials(self.request)
@@ -20,6 +20,7 @@ class BaseComposite:
         self.requireds = Requireds(self)
         self.resources = Resources(self)
         self.results = Results(self.response)
+        self.unknownsFatal = True
 
         observed = self.request.observed.composite
         desired = self.response.desired.composite
@@ -134,6 +135,7 @@ class Resource:
         self.desired = desired.resource
         self.conditions = Conditions(observed)
         self.connection = Connection(observed)
+        self.unknownsFatal = None
 
     def __call__(self, apiVersion=_notset, kind=_notset, namespace=_notset, name=_notset):
         self.desired()
@@ -333,14 +335,30 @@ class Results:
     def __init__(self, response):
         self._results = response.results
 
-    def __call__(self, message=_notset, fatal=_notset, warning=_notset, reaoson=_notset, claim=_notset):
-        result = Result(self._results.add())
-        if fatal != _notset:
-            result.fatal = fatal
-        elif warning != _notset:
-            result.warning = warning
-        if message != _notset:
-            result.message = message
+    def info(self, message, reason=_notset, claim=_notset):
+        result = Result(self._results.append())
+        result.info = True
+        result.message = message
+        if reason != _notset:
+            result.reason = reason
+        if claim != _notset:
+            result.claim = claim
+        return result
+
+    def warning(self, message, reason=_notset, claim=_notset):
+        result = Result(self._results.append())
+        result.warning = True
+        result.message = message
+        if reason != _notset:
+            result.reason = reason
+        if claim != _notset:
+            result.claim = claim
+        return result
+
+    def fatal(self, message, reason=_notset, claim=_notset):
+        result = Result(self._results.append())
+        result.fatal = True
+        result.message = message
         if reason != _notset:
             result.reason = reason
         if claim != _notset:
@@ -348,7 +366,7 @@ class Results:
         return result
 
     def __bool__(self):
-        return len(self._results) > 0
+        return len(self) > 0
 
     def __len__(self):
         len(self._results)
@@ -364,35 +382,47 @@ class Results:
 
 
 class Result:
-    def __init(self, result=None):
+    def __init__(self, result=None):
         self._result = result
 
     def __bool__(self):
         return self._result is not None
 
     @property
-    def fatal(self):
-        return bool(self) and self._result == fnv1.Severity.SEVERITY_FATAL
+    def info(self):
+        return bool(self) and self._result.severity == fnv1.Severity.SEVERITY_NORMAL
 
-    @fatal.setter
-    def fatal(self, fatal):
+    @info.setter
+    def info(self, info):
         if bool(self):
-            if fatal:
-                self._result = fnv1.Severity.SEVERITY_FATAL
+            if info:
+                self._result.severity = fnv1.Severity.SEVERITY_NORMAL
             else:
-                self._result = fnv1.Severity.SEVERITY_NORMAL
+                self._result.severity = fnv1.Severity.SEVERITY_UNSPECIFIED
 
     @property
     def warning(self):
-        return bool(self) and self._result == fnv1.Severity.SEVERITY_WARNING
+        return bool(self) and self._result.severity == fnv1.Severity.SEVERITY_WARNING
 
     @warning.setter
     def warning(self, warning):
         if bool(self):
             if warning:
-                self._result = fnv1.Severity.SEVERITY_WARNING
+                self._result.severity = fnv1.Severity.SEVERITY_WARNING
             else:
-                self._result = fnv1.Severity.SEVERITY_NORMAL
+                self._result.severity = fnv1.Severity.SEVERITY_NORMAL
+
+    @property
+    def fatal(self):
+        return bool(self) and self._result.severity == fnv1.Severity.SEVERITY_FATAL
+
+    @fatal.setter
+    def fatal(self, fatal):
+        if bool(self):
+            if fatal:
+                self._result.severity = fnv1.Severity.SEVERITY_FATAL
+            else:
+                self._result.severity = fnv1.Severity.SEVERITY_NORMAL
 
     @property
     def message(self):

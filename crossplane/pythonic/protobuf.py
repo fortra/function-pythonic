@@ -131,14 +131,20 @@ class Message:
     def __format__(self, spec='yaml'):
         return _formatObject(self, spec)
 
-    @property
-    def _fullName(self):
+    def _fullName(self, key=None):
         if self._key is not None:
             if self._parent is not None:
-                parent = self._parent._fullName
-                if parent:
-                    return f"{parent}.{self._key}"
-            return self._key
+                name = self._parent._fullName(self._key)
+            else:
+                name = str(self._key)
+            if key is not None:
+                if key.isidentifier():
+                    name += f".{key}"
+                else:
+                    name += f"['{key}']"
+            return name
+        if key is not None:
+            return str(key)
         return ''
 
     def _create_child(self, key, type=None):
@@ -272,14 +278,20 @@ class MapMessage:
     def __format__(self, spec='yaml'):
         return _formatObject(self, spec)
 
-    @property
-    def _fullName(self):
+    def _fullName(self, key=None):
         if self._key is not None:
             if self._parent is not None:
-                parent = self._parent._fullName
-                if parent:
-                    return f"{parent}.{self._key}"
-            return self._key
+                name = self._parent._fullName(self._key)
+            else:
+                name = str(self._key)
+            if key is not None:
+                if key.isidentifier():
+                    name += f".{key}"
+                else:
+                    name += f"['{key}']"
+            return name
+        if key is not None:
+            return str(key)
         return ''
 
     def _create_child(self, key, type=None):
@@ -392,14 +404,17 @@ class RepeatedMessage:
     def __format__(self, spec='yaml'):
         return _formatObject(self, spec)
 
-    @property
-    def _fullName(self):
+    def _fullName(self, key=None):
         if self._key is not None:
             if self._parent is not None:
-                parent = self._parent._fullName
-                if parent:
-                    return f"{parent}.{self._key}"
-            return self._key
+                name = self._parent._fullName(self._key)
+            else:
+                name = str(self._key)
+            if key is not None:
+                name += f"[{key}]"
+            return name
+        if key is not None:
+            return str(key)
         return ''
 
     def _create_child(self, key, type=None):
@@ -471,7 +486,7 @@ class Values:
         self.__dict__['_values'] = values
         self.__dict__['_type'] = type
         self.__dict__['_readOnly'] = readOnly
-        self.__dict__['_unknowns'] = set()
+        self.__dict__['_unknowns'] = {}
         self.__dict__['_cache'] = {}
 
     def __getattr__(self, key):
@@ -481,13 +496,11 @@ class Values:
         if key in self._cache:
             return self._cache[key]
         if key in self._unknowns:
-            value = Values(self, key, None, self.Type.UNKNOWN, self._readOnly)
-            self._cache[key] = value
-            return value
+            return self._unknowns[key]
         if isinstance(key, str):
             if not self._isMap:
                 if not self._isUnknown:
-                    raise ValueError('Invalid key, must be a str for maps')
+                    raise ValueError(f"Invalid key, must be a str for maps: {key}")
                 self.__dict__['_type'] = self.Type.MAP
             if self._values is None or key not in self._values:
                 struct_value = None
@@ -496,7 +509,7 @@ class Values:
         elif isinstance(key, int):
             if not self._isList:
                 if not self._isUnknown:
-                    raise ValueError('Invalid key, must be an int for lists')
+                    raise ValueError(f"Invalid key, must be an int for lists: {key}")
                 self.__dict__['_type'] = self.Type.LIST
             if self._values is None or key >= len(self._values):
                 struct_value = None
@@ -548,12 +561,12 @@ class Values:
     def __iter__(self):
         if self._values is not None:
             if self._isMap:
-                for key in sorted(set(self._values) | self._unknowns):
+                for key in sorted(set(self._values) | set(self._unknowns.keys())):
                     yield key, self[key]
             elif self._isList:
                 for ix in range(len(self._values)):
                     yield self[ix]
-                for ix in sorted(self._unknowns):
+                for ix in sorted(self._unknowns.keys()):
                     if ix >= len(self._values):
                         yield self[ix]
 
@@ -594,14 +607,31 @@ class Values:
     def __format__(self, spec='yaml'):
         return _formatObject(self, spec)
 
-    @property
-    def _fullName(self):
+    def _fullName(self, key=None):
         if self._key is not None:
             if self._parent is not None:
-                parent = self._parent._fullName
-                if parent:
-                    return f"{parent}.{self._key}"
-            return str(self._key)
+                name = self._parent._fullName(self._key)
+            else:
+                name = str(self._key)
+            if key is not None:
+                if self._isMap:
+                    if key.isidentifier():
+                        name += f".{key}"
+                    else:
+                        name += f"['{key}']"
+                elif self._isList:
+                    name += f"[{key}]"
+                else:
+                    if isinstance(key, int):
+                        name += f"[{key}]"
+                    else:
+                        if key.isidentifier():
+                            name += f".{key}"
+                        else:
+                            name += f"['{key}']"
+            return name
+        if key is not None:
+            return str(key)
         return ''
 
     def _create_child(self, key, type):
@@ -707,7 +737,7 @@ class Values:
         else:
             raise ValueError('Unexpected key type')
         self._cache.pop(key, None)
-        self._unknowns.discard(key)
+        self._unknowns.pop(key, None)
         if isinstance(value, ProtobufValue):
             value = value._protobuf_value
         if value is None:
@@ -732,7 +762,7 @@ class Values:
                 values[key].list_value.Clear()
                 self[key](*[v for v in value])
             else:
-                self._unknowns.add(key)
+                self._unknowns[key] = value
                 if self._isMap:
                     if key in values:
                         del values[key]
@@ -761,7 +791,7 @@ class Values:
                 if key in self._values:
                     del self._values[key]
                 self._cache.pop(key, None)
-                self._unknowns.discard(key)
+                self._unknowns.pop(key, None)
         elif isinstance(key, int):
             if not self._isList:
                 if not self._isUnknown:
@@ -771,12 +801,12 @@ class Values:
                 if key < len(self._values):
                     del self._values[key]
                 self._cache.pop(key, None)
-                self._unknowns.discard(key)
-                for ix in sorted(self._unknowns):
+                self._unknowns.pop(key, None)
+                for ix in sorted(self._unknowns.keys()):
                     if ix > key:
                         self._cache.pop(ix, None)
-                        self._unknowns.add(ix - 1)
-                        self._unknowns.disacard(ix)
+                        self._unknowns[ix - 1] = self._unknowns[ix]
+                        del self._unknowns[ix]
                 for ix in reversed(range(len(self._values))):
                     if ix not in self._unknowns:
                         break
@@ -797,21 +827,22 @@ class Values:
         return self._type == self.Type.LIST
 
     @property
-    def _hasUnknowns(self):
-        if self._unknowns:
-            return True
+    def _getUnknowns(self):
+        unknowns = {}
+        for key, unknown in self._unknowns.items():
+            unknowns[self._fullName(key)] = unknown._fullName()
         if self._isMap:
             for key, value in self:
-                if isinstance(value, Values) and value._hasUnknowns:
-                    return True
+                if isinstance(value, Values):
+                    unknowns.update(value._getUnknowns)
         elif self._isList:
             for value in self:
-                if isinstance(value, Values) and value._hasUnknowns:
-                    return True
-        return False
+                if isinstance(value, Values):
+                    unknowns.update(value._getUnknowns)
+        return unknowns
 
     def _patchUnknowns(self, patches):
-        for key in [key for key in self._unknowns]:
+        for key in [key for key in self._unknowns.keys()]:
             self[key] = patches[key]
         if self._isMap:
             for key, value in self:

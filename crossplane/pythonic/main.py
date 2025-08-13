@@ -66,7 +66,7 @@ def main():
 
     logging.configure(logging.Level.DEBUG if args.debug else logging.Level.INFO)
     runtime.serve(
-        function.FunctionRunner(),
+        function.FunctionRunner(args.debug),
         args.address,
         creds=runtime.load_credentials(args.tls_certs_dir),
         insecure=args.insecure,

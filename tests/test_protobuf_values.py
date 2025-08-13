@@ -123,7 +123,7 @@ def test_values_map():
     assert 'nope' not in values
     assert values == values
     assert hash(values) == hash(values)
-    assert values._hasUnknowns
+    assert values._getUnknowns
 
 def test_values_list():
     values = protobuf.List(
@@ -164,7 +164,7 @@ def test_values_list():
     assert protobuf.Unknown() in values
     assert values == values
     assert hash(values) == hash(values)
-    assert values._hasUnknowns
+    assert values._getUnknowns
 
 def test_create_child():
     map = protobuf.Unknown()
@@ -174,14 +174,14 @@ def test_create_child():
     assert map.a.b == 'c'
     del map.a.b
     assert 'b' not in map.a
-    assert not map._hasUnknowns
+    assert not map._getUnknowns
     map.a.b = protobuf.Unknown()
-    assert map._hasUnknowns
+    assert map._getUnknowns
     list[0][0] = 'c'
     assert 'c' in list[0]
     assert list[0][0] == 'c'
     del list[0][0]
     assert 'c' not in list[0]
-    assert not list._hasUnknowns
+    assert not list._getUnknowns
     list[0][0] = protobuf.Unknown()
-    assert list._hasUnknowns
+    assert list._getUnknowns

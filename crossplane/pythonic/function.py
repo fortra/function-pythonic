@@ -26,8 +26,9 @@ builtins.B64Decode = pythonic.B64Decode
 class FunctionRunner(grpcv1.FunctionRunnerService):
     """A FunctionRunner handles gRPC RunFunctionRequests."""
 
-    def __init__(self):
+    def __init__(self, debug=False):
         """Create a new FunctionRunner."""
+        self.debug = debug
         self.logger = crossplane.function.logging.get_logger()
         self.clazzes = {}
 
@@ -117,12 +118,57 @@ class FunctionRunner(grpcv1.FunctionRunnerService):
             logger.exception('Compose exception')
             return response
 
-        for name, resource in [entry for entry in composite.resources]:
-            if resource.desired._hasUnknowns:
+        unknownResources = []
+        warningResources = []
+        fatalResources = []
+        for name, resource in sorted(entry for entry in composite.resources):
+            unknowns = resource.desired._getUnknowns
+            if unknowns:
+                unknownResources.append(name)
+                warning = False
+                fatal = False
+                if resource.observed:
+                    warningResources.append(name)
+                    warning = True
+                    if resource.unknownsFatal:
+                        fatalResources.append(name)
+                        fatal = True
+                    elif resource.unknownsFatal is None and composite.unknownsFatal:
+                        fatalResources.append(name)
+                        fatal = True
+                if self.debug:
+                    for destination, source in sorted(unknowns.items()):
+                        destination = self._trimFullName('response', 'desired', destination)
+                        source = self._trimFullName('request', 'observed', source)
+                        if fatal:
+                            logger.error('Observed unknown assignment', destination=destination, source=source)
+                        elif warning:
+                            logger.warning('Observed unknown assignment', destination=destination, source=source)
+                        else:
+                            logger.debug('New unknown assignment', destination=destination, source=source)
                 if resource.observed:
                     resource.desired._patchUnknowns(resource.observed)
                 else:
                     del composite.resources[name]
+        if fatalResources:
+            if not self.debug:
+                logger.error('Observed Resources with unknown assignments', resources=fatalResources)
+            message = f"Observed Resources with unknown assignments: {', '.join(fatalResources)}"
+            composite.conditions.Unknowns(False, 'FatalUnknowns', message)
+            composite.results.fatal(message, 'FatalUnknowns')
+            return response
+        if warningResources:
+            if not self.debug:
+                logger.warning('Observed Resources with unknown assignments', resources=fatalResources)
+            message = f"Observed Resources with unknown assignments: {', '.join(warningResources)}"
+            composite.conditions.Unknowns(False, 'ObservedUnknowns', message)
+            composite.results.warning(message, 'ObservedUnknowns')
+        elif unknownResources:
+            if not self.debug:
+                logger.info('New Resources with unknown assignments', resources=unknownResources)
+            message = f"New Resources with unknown assignments: {', '.join(unknownResources)}"
+            composite.conditions.Unknowns(False, 'NewUnknowns', message)
+            composite.results.info(message, 'NewUnknowns')
 
         if composite.autoReady:
             for name, resource in composite.resources:
@@ -132,6 +178,16 @@ class FunctionRunner(grpcv1.FunctionRunnerService):
 
         logger.debug('Returning')
         return response
+
+    def _trimFullName(self, message, state, name):
+        name = name.split('.')
+        ix = 0
+        for value in (message, state, 'resources', None, 'resource'):
+            if value and ix < len(value) and name[ix] == value:
+                del name[ix]
+            else:
+                ix += 1
+        return '.'.join(name)
 
 
 class Module:

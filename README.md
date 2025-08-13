@@ -56,17 +56,18 @@ spec:
   package: ghcr.io/fortra/function-pythonic:v0.0.3
 ```
 
-## Managed Resource Dependencies
+## Composed Resource Dependencies
 
-function-pythonic automatically handles dependencies between managed resources.
+function-pythonic automatically handles dependencies between composed resources.
 
 Just compose everything as if it is immediately created and the framework will delay
 the creation of any resources which depend on other resources which do not exist yet.
 In other words, it accomplishes what [function-sequencer](https://github.com/crossplane-contrib/function-sequencer)
 provides, but it automatically detects the dependencies.
 
-If a resource has been composed and a dependency no longer exists due to some unexpected
-condition, the observed value for that field will automatically be used.
+If a resource has been created and a dependency no longer exists due to some unexpected
+condition, the composition will be terminated or the observed value for that field will
+be used, depending on the `unknownsFatal` settings.
 
 Take the following example:
 ```yaml
@@ -83,9 +84,13 @@ subnet.spec.forProvider.cidrBlock = '10.0.0.0/20'
 If the Subnet does not yet exist, the framework will detect if the vpcId set
 in the Subnet is unknown, and will delay the creation of the subnet.
 
-Once the Subnet has been created, if for some mysterious reason the vpcId passed
-to the Subnet is unknown, the framework will automatically use the vpcId in the
-observed Subnet.
+Once the Subnet has been created, if for some unexpected reason the vpcId passed
+to the Subnet is unknown, the framework will detect it and either terminate
+the Composite composition or use the vpcId in the observed Subnet. The default
+action taken is to fast fail by terminating the composition. This can be
+overridden for all composed resource by setting the Composite `self.unknownsFatal` field
+to False, or at the individual composed resource level by setting the
+`Resource.unknownsFatal` field to False.
 
 ## Pythonic access of Protobuf Messages
 
@@ -186,37 +191,39 @@ The BaseComposite also provides access to the following Crossplane Function leve
 | self.response | Low level direct access to the RunFunctionResponse message |
 | self.logger | Python logger to log messages to the running function stdout |
 | self.ttl | Get or set the response TTL, in seconds |
-| self.autoReady | Perform auto ready processing after the compose method returns, default True |
 | self.credentials | The request credentials |
 | self.context | The response context, initialized from the request context |
 | self.environment | The response environment, initialized from the request context environment |
 | self.requireds | Request and read additional local Kubernetes resources |
-| self.resources | Define and process managed resources |
+| self.resources | Define and process composed resources |
 | self.results | Returned results on the Composite and optionally on the Claim |
+| self.unknownsFatal | Terminate the composition if already created resources are assigned unknown values, default True |
+| self.autoReady | Perform auto ready processing after the compose method returns, default True |
 
-### Managed Resources
+### Composed Resources
 
-Creating and accessing managed resources is performed using the `BaseComposite.resources` field.
-`BaseComposite.resources` is a dictionary of the managed resources whose key is the composition
+Creating and accessing composed resources is performed using the `BaseComposite.resources` field.
+`BaseComposite.resources` is a dictionary of the composed resources whose key is the composition
 resource name. The value returned when getting a resource from BaseComposite is the following
 Resource class:
 
 | Field | Description |
 | ----- | ----------- |
 | Resource(apiVersion,kind,namespace,name) | Reset the resource and set the optional parameters |
-| Resource.name | The composition resource name of the managed resource |
-| Resource.observed | Low level direct access to the observed managed resource |
-| Resource.desired | Low level direct access to the desired managed resource |
-| Resource.apiVersion | The managed resource apiVersion |
-| Resource.kind | The managed resource kind |
-| Resource.externalName | The managed resource external name |
-| Resource.metadata | The managed resource desired metadata |
+| Resource.name | The composition resource name of the composed resource |
+| Resource.observed | Low level direct access to the observed composed resource |
+| Resource.desired | Low level direct access to the desired composed resource |
+| Resource.apiVersion | The composed resource apiVersion |
+| Resource.kind | The composed resource kind |
+| Resource.externalName | The composed resource external name |
+| Resource.metadata | The composed resource desired metadata |
 | Resource.spec | The resource spec |
 | Resource.data | The resource data |
 | Resource.status | The resource status |
 | Resource.conditions | The resource conditions |
 | Resource.connection | The resource connection details |
 | Resource.ready | The resource ready state |
+| Resource.unknownsFatal | Terminate the composition if this resource has been created and is assigned unknown values, default is Composite.unknownsFatal |
 
 ### Required Resources (AKA Extra Resources)
 

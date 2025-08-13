@@ -44,7 +44,8 @@ type = "virtual"
 path = ".venv-default"
 dependencies = ["ipython==9.1.0"]
 [tool.hatch.envs.default.scripts]
-development = "python crossplane/pythonic/main.py --insecure --debug"
+development = "python -m crossplane.pythonic.main --insecure --debug"
+production = "python -m crossplane.pythonic.main --insecure"
 
 [tool.hatch.envs.lint]
 type = "virtual"
