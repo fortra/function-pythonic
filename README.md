@@ -517,3 +517,30 @@ spec:
             - --debug
             - --allow-oversize-protos
 ```
+
+## Setup local development environment
+
+The following guide sets you up for local development by installing the crossplane.pythonic package locally into a virtual environment.
+
+1. **Create a virtual environment** for your `function-pythonic` development:
+   ```bash
+   python3 -m venv venv
+   ```
+2. Activate the venv you created:
+   ```bash
+   source venv/bin/activate
+   ```
+3. Make sure the venv is active:
+    ```bash
+    which python3
+    ```
+    This should point to the `venv/bin/python` path.
+
+4. Clone the function-pythonic repository onto your filesystem:
+   ```bash
+   git clone git@github.com:fortra/function-pythonic.git
+   ```
+5. While in the context of your venv, run: 
+   ```bash
+   python3 -m pip install .
+   ```
