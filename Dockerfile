@@ -1,17 +1,11 @@
 FROM python:3.13-slim-trixie AS image
 
-WORKDIR /root/pythonic
-COPY pyproject.toml /root/pythonic
-COPY crossplane /root/pythonic/crossplane
+COPY dist/*.whl /root
 WORKDIR /
 RUN \
   set -eux && \
-  cd /root/pythonic && \
-  pip install --root-user-action ignore --no-build-isolation setuptools==80.9.0 && \
-  pip install --root-user-action ignore --no-build-isolation . && \
-  pip uninstall --root-user-action ignore --yes setuptools && \
-  cd .. && \
-  rm -rf .cache pythonic && \
+  pip install --root-user-action ignore --no-build-isolation /root/*.whl && \
+  rm -rf /root/*.whl /root/.cache && \
   groupadd --gid 2000 pythonic && \
   useradd --uid 2000 --gid pythonic --home-dir /opt/pythonic --create-home --shell /usr/sbin/nologin pythonic
 

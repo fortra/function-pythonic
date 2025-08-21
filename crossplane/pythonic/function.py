@@ -220,30 +220,30 @@ class FunctionRunner(grpcv1.FunctionRunnerService):
 
     def trimFullName(self, name):
         name = name.split('.')
-        ix = 0
         for values in (
-                ('request', 'response'),
-                ('observed', 'desired'),
-                ('resources', 'extra_resources'),
-                None,
-                ('resource', 'items'),
+                ('request', 'observed', 'resources', None, 'resource'),
+                ('request', 'extra_resources', None, 'items', 'resource'),
+                ('response', 'desired', 'resources', None, 'resource'),
         ):
-            if values:
-                if ix < len(name):
+            if len(values) <= len(name):
+                for ix, value in enumerate(values):
+                    if value and value != name[ix] and not name[ix].startswith(f"{value}["):
+                       break
+                else:
+                    ix = 0
                     for value in values:
-                        if name[ix] == value:
-                            del name[ix]
-                            break
-                        if name[ix].startswith(f"{value}["):
-                            if ix:
+                        if value:
+                            if value == name[ix]:
+                                del name[ix]
+                            elif ix:
                                 name[ix-1] += name[ix][len(value):]
                                 del name[ix]
                             else:
                                 name[ix] = name[ix][len(value):]
                                 ix += 1
-                            break
-            else:
-                ix += 1
+                        else:
+                            ix += 1
+                    break
         return '.'.join(name)
 
 

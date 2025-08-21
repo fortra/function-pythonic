@@ -59,7 +59,6 @@ metadata:
 spec:
   package: ghcr.io/fortra/function-pythonic:v0.0.7
 ```
-
 ## Composed Resource Dependencies
 
 function-pythonic automatically handles dependencies between composed resources.
@@ -253,34 +252,46 @@ selection. For now, use matchLabels and filter the results if required.
 RequiredResources acts like a Python list to provide access to the found required resources.
 Each resource in the list is the following RequiredResource class:
 
-| Field | Description |
-| ----- | ----------- |
-| RequiredResource.name | The required resource name |
-| RequiredResource.observed | Low level direct access to the observed required resource |
-| RequiredResource.apiVersion | The required resource apiVersion |
-| RequiredResource.kind | The required resource kind |
-| RequiredResource.metadata | The required resource metadata |
-| RequiredResource.spec | The required resource spec |
-| RequiredResource.data | The required resource data |
-| RequiredResource.status | The required resource status |
-| RequiredResource.conditions | The required resource conditions |
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| RequiredResource.name | String | The required resource name |
+| RequiredResource.observed | Map | Low level direct access to the observed required resource |
+| RequiredResource.apiVersion | String | The required resource apiVersion |
+| RequiredResource.kind | String | The required resource kind |
+| RequiredResource.metadata | Map | The required resource metadata |
+| RequiredResource.spec | Map | The required resource spec |
+| RequiredResource.data | Map | The required resource data |
+| RequiredResource.status | Map | The required resource status |
+| RequiredResource.conditions | Map | The required resource conditions |
 
 ### Conditions
 
-The `conditions` field is a map of the resource's status conditions array, with
-the map key being the condition type.
+The `BaseCompsite.conditions`, `Resource.conditions`, and `RequiredResource.conditions` fields
+are maps of that entity's status conditions array, with the map key being the condition type.
+The fields are read only for `Resource.conditions` and `RequiredResource.conditions`.
 
-| Field | Description |
-| ----- | ----------- |
-| Condition.type | The condtion type |
-| Condition.status | RequiredResource.observed | Low level direct access to the observed required resource |
-| RequiredResource.apiVersion | The required resource apiVersion |
-| RequiredResource.kind | The required resource kind |
-| RequiredResource.metadata | The required resource metadata |
-| RequiredResource.spec | The required resource spec |
-| RequiredResource.data | The required resource data |
-| RequiredResource.status | The required resource status |
-| RequiredResource.conditions | The required resource conditions |
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| Condition.type | String | The condtion type, or name |
+| Condition.status | Boolean | The condition status |
+| Condition.reason | String | PascalCase, machine-readable reason for this condition |
+| Condition.message | String | Human-readable details about the condition |
+| Condition.lastTransitionTime | Timestamp | Last transition time, read only |
+| Condition.claim | Boolean | Also apply the condition the claim |
+
+### Events
+
+The `BaseComposite.events` field is a list of events to apply to the Composite and
+optionally to the Claim.
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| Event.info | Boolean | Normal informational event |
+| Event.warning | Boolean | Warning level event |
+| Event.fatal | Boolean | Fatal events also terminate composing the Composite |
+| Event.reason | String | PascalCase, machine-readable reason for this event |
+| Event.message | String | Human-readable details about the event |
+| Event.claim | Boolean | Also apply the event to the claim |
 
 ## Single use Composites
 
@@ -299,6 +310,85 @@ spec:
     class Composite(BaseComposite):
       def compose(self):
         self.status.composite = 'Hello, World!'
+```
+
+## Quick Start Development
+
+The following example demonstrates how to locally render function-python
+compositions. First, install the `crossplane-function-pythonic` python
+package into the python environment:
+```shell
+$ pip install crossplane-function-pythonic
+```
+Next, create the following files:
+#### xr.yaml
+```yaml
+apiVersion: pythonic.fortra.com/v1alpha1
+kind: Hello
+metadata:
+  name: world
+spec:
+  who: World
+```
+#### composition.yaml
+```yaml
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: hellos.pythonic.fortra.com
+spec:
+  compositeTypeRef:
+    apiVersion: pythonic.fortra.com/v1alpha1
+    kind: Hello
+  mode: Pipeline
+  pipeline:
+  - step: pythonic
+    functionRef:
+      name: function-pythonic
+    input:
+      apiVersion: pythonic.fn.fortra.com/v1alpha1
+      kind: Composite
+      composite: |
+        class Composite(BaseComposite):
+          def compose(self):
+            self.status.greeting = f"Hello, {self.spec.who}!"
+```
+#### functions.yaml
+```yaml
+apiVersion: pkg.crossplane.io/v1beta1
+kind: Function
+metadata:
+  name: function-pythonic
+  annotations:
+    render.crossplane.io/runtime: Development
+spec:
+  package: ghcr.io/fortra/function-pythonic:v0.0.7
+```
+In one terminal session, run function-pythonic:
+```shell
+$ function-pythonic --insecure --debug
+[2025-08-21 15:32:37.966] grpc._cython.cygrpc  [DEBUG   ] Using AsyncIOEngine.POLLER as I/O engine
+```
+In another terminal session, render the Composite:
+```shell
+$ crossplane render xr.yaml composition.yaml functions.yaml
+---
+apiVersion: pythonic.fortra.com/v1alpha1
+kind: Hello
+metadata:
+  name: world
+status:
+  conditions:
+  - lastTransitionTime: "2024-01-01T00:00:00Z"
+    reason: Available
+    status: "True"
+    type: Ready
+  - lastTransitionTime: "2024-01-01T00:00:00Z"
+    message: All resources are composed
+    reason: AllComposed
+    status: "True"
+    type: ResourcesComposed
+  greeting: Hello, World!
 ```
 
 ## ConfigMap Packages

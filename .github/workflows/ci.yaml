@@ -14,7 +14,8 @@ on:
 
 env:
   # Common versions
-  PYTHON_VERSION: '3.12.11' # TODO: Used?
+  PYTHON_VERSION: '3.13.7' # TODO: Used?
+  HATCH_VERSION: '1.12.0'
   DOCKER_BUILDX_VERSION: 'v0.26.1'
 
   # These environment variables are important to the Crossplane CLI install.sh
@@ -31,6 +32,9 @@ env:
   # example xpkg.upbound.io/crossplane/function-template-go.
   # XPKG: xpkg.upbound.io/${{ github.repository}}
   CROSSPLANE_REGORG: ghcr.io/${{ github.repository}}
+
+  # The PyPi project version to push. The default is v0.0.0+gitdate-gitsha.
+  PYPI_VERSION: ${{ inputs.version }}
 
   # The package version to push. The default is 0.0.0-gitsha.
   XPKG_VERSION: ${{ inputs.version }}
@@ -86,11 +90,49 @@ jobs:
         #remove-link-from-badge: false
         #unique-id-for-comment: python3.8
 
+  build-pypi:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Setup Hatch
+        run: pipx install hatch==${{ env.HATCH_VERSION }}
+
+      # If a version wasn't explicitly passed as a workflow_dispatch input we
+      # default to version v0.0.0+<git-commit-date>-<git-short-sha>, for example
+      # v0.0.0+20231101115142-1091066df799. This is a simple implementation of
+      # Go's pseudo-versions: https://go.dev/ref/mod#pseudo-versions.
+      - name: Set Default PyPI Project Version
+        if: env.PYPI_VERSION == ''
+        run: echo "PYPI_VERSION=v0.0.0+$(date -d@$(git show -s --format=%ct) +%Y%m%d%H%M%S)-$(git rev-parse --short=12 HEAD)" >> $GITHUB_ENV
+
+      - name: Set PyPI Project Version
+        run: hatch version ${{ env.PYPI_VERSION }}
+
+      - name: Build Sdist and Wheel
+        run: hatch build
+
+      - name: Upload Sdist and Wheel to GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: "dist/*"
+          if-no-files-found: error
+          retention-days: 1
+
   # We want to build most packages for the amd64 and arm64 architectures. To
   # speed this up we build single-platform packages in parallel. We then upload
   # those packages to GitHub as a build artifact. The push job downloads those
   # artifacts and pushes them as a single multi-platform package. 
-  build:
+  build-xpkg:
+    needs:
+      - build-pypi
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: true
@@ -112,6 +154,13 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Download Wheel from GitHub
+        uses: actions/download-artifact@v5
+        with:
+          name: dist
+          pattern: '*.whl'
+          path: dist
 
       # We ask Docker to use GitHub Action's native caching support to speed up
       # the build, per https://docs.docker.com/build/cache/backends/gha/.
@@ -142,16 +191,38 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  publish-pypi:
+    # Don't publish unless we were run with an explicit version.
+    if: ${{ inputs.version != '' }}
+    needs:
+      - build-xpkg # only publish if xpkg builds succeeds
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download Sdist and Wheel from GitHub
+        uses: actions/download-artifact@v5
+        with:
+          name: dist
+          path: dist
+
+      - name: Setup Hatch
+        run: pipx install hatch==${{ env.HATCH_VERSION }}
+
+      - name: Publish to PyPI
+        env:
+          HATCH_INDEX_USER: __token__
+          HATCH_INDEX_AUTH: ${{ secrets.PYPI_API_TOKEN }}
+        run: hatch publish --no-prompt
+
   # This job downloads the single-platform packages built by the build job, and
   # pushes them as a multi-platform package. We only push the package it the
   # XPKG_ACCESS_ID and XPKG_TOKEN secrets were provided.
-  push:
+  push-xpkg:
+    needs:
+      - build-xpkg
     runs-on: ubuntu-24.04
     permissions:
       contents: read
       packages: write
-    needs:
-      - build
     steps:
       - name: Checkout
         uses: actions/checkout@v4

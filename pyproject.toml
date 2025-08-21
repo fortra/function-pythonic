@@ -1,6 +1,5 @@
 [project]
 name = "crossplane-function-pythonic"
-version = "0.0.6"
 description = 'A Python centric Crossplane Function'
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
@@ -21,14 +20,32 @@ dependencies = [
   "pyyaml==6.0.2",
 ]
 
+dynamic = ["version"]
+
 [project.urls]
 Documentation = "https://github.com/fortra/function-pythonic#readme"
 Issues = "https://github.com/fortra/function-pythonic/issues"
 Source = "https://github.com/fortra/function-pythonic"
 
-[tool.setuptools]
-packages = ["crossplane.pythonic"]
-py-modules = []
+[project.scripts]
+function-pythonic = "crossplane.pythonic.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "crossplane/pythonic/__version__.py"
+validate-bump = false
+
+[tool.hatch.build.targets.wheel]
+only-include = ["crossplane"]
+
+[tool.hatch.build.targets.sdist]
+only-include = [
+  "crossplane",
+  "examples",
+]
 
 [tool.hatch.envs.default]
 type = "virtual"

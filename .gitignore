@@ -211,4 +211,6 @@ marimo/_lsp/
 __marimo__/
 
 # function-pythonic
+crossplane/pythonic/__version__.py
+pocs/
 pythonic-packages/
