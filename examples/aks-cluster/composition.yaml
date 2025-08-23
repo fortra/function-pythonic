@@ -1,0 +1,17 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: aks-cluster
+spec:
+  compositeTypeRef:
+    apiVersion: example.crossplane.io/v1
+    kind: AzureKubernetesCluster
+  mode: Pipeline
+  pipeline:
+  - step: create-aks-cluster
+    functionRef:
+      name: function-pythonic
+    input:
+      apiVersion: pythonic.fn.fortra.com/v1alpha1
+      kind: Composite
+      composite: kubernetescluster.KubernetesClusterComposite
