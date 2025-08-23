@@ -1,0 +1,15 @@
+apiVersion: example.crossplane.io/v1
+kind: AzureKubernetesCluster
+metadata:
+  namespace: my-aks-namespace
+  name: my-aks-cluster
+spec:
+  defaultNodePool:
+    autoScaling:
+      enabled: False
+      minCount: 1
+      maxCount: 3
+  nodeCount: 1
+  vmSize: Standard_B2ms
+  resourceGroupName: my-resource-group
+  location: westeurope

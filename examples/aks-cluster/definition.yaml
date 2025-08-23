@@ -1,0 +1,43 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: azurekubernetesclusters.example.crossplane.io
+spec:
+  group: example.crossplane.io
+  names:
+    kind: AzureKubernetesCluster
+    plural: azurekubernetesclusters
+  claimNames:
+    kind: AzureKubernetesClusterClaim
+    plural: azurekubernetesclusterclaims
+  versions:
+    - name: v1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                defaultNodePool:
+                  type: object
+                  properties:
+                    autoScaling:
+                      type: object
+                      properties:
+                        enabled:
+                          type: boolean
+                        minCount:
+                          type: integer
+                        maxCount:
+                          type: integer
+                nodeCount:
+                  type: integer
+                vmSize:
+                  type: string
+                resourceGroupName:
+                  type: string
+                location:
+                  type: string
