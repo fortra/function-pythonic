@@ -19,11 +19,7 @@ from . import function
 
 
 def main():
-    try:
-        asyncio.run(Main().main())
-    except:
-        traceback.print_exc()
-        sys.exit(1)
+    asyncio.run(Main().main())
 
 
 class Main:
@@ -38,6 +34,7 @@ class Main:
             '--log-name-width',
             type=int,
             default=40,
+            metavar='WIDTH',
             help='Width of the logger name in the log output, default 40',
         )
         parser.add_argument(
@@ -48,6 +45,7 @@ class Main:
         parser.add_argument(
             '--tls-certs-dir',
             default=os.getenv('TLS_SERVER_CERTS_DIR'),
+            metavar='DIRECTORY',
             help='Serve using mTLS certificates.',
         )
         parser.add_argument(
@@ -69,21 +67,25 @@ class Main:
             '--packages-namespace',
             action='append',
             default=[],
-            help='Namespaces to discover function-pythonic ConfigMaps and Secrets in, default is cluster wide.',
+            metavar='NAMESPACE',
+            help='Namespaces to discover function-pythonic ConfigMaps in, default is cluster wide.',
         )
         parser.add_argument(
             '--packages-dir',
             default='./pythonic-packages',
-            help='Directory to store discovered function-pythonic ConfigMaps and Secrets to, defaults "<cwd>/pythonic-packages"'
+            metavar='DIRECTORY',
+            help='Directory to store discovered function-pythonic ConfigMaps to, defaults "<cwd>/pythonic-packages"'
         )
         parser.add_argument(
             '--pip-install',
+            metavar='COMMAND',
             help='Pip install command to install additional Python packages.'
         )
         parser.add_argument(
             '--python-path',
             action='append',
             default=[],
+            metavar='DIRECTORY',
             help='Filing system directories to add to the python path',
         )
         parser.add_argument(
@@ -92,7 +94,6 @@ class Main:
             help='Allow oversized protobuf messages'
         )
         args = parser.parse_args()
-
         self.configure_logging(args)
 
         if args.pip_install:
@@ -136,11 +137,11 @@ class Main:
             async with asyncio.TaskGroup() as tasks:
                 tasks.create_task(grpc_server.wait_for_termination())
                 tasks.create_task(packages.operator(
+                    grpc_server,
+                    grpc_runner,
                     args.packages_secrets,
                     args.packages_namespace,
                     args.packages_dir,
-                    grpc_server,
-                    grpc_runner,
                 ))
         else:
             def stop():

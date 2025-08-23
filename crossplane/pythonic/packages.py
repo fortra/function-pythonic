@@ -8,16 +8,15 @@ import sys
 import kopf
 
 
-PACKAGE_LABEL = {'function-pythonic.package': kopf.PRESENT}
-PACKAGES_DIR = None
 GRPC_SERVER = None
 GRPC_RUNNER = None
+PACKAGE_LABEL = {'function-pythonic.package': kopf.PRESENT}
+PACKAGES_DIR = None
 
 
-def operator(packages_secrets, packages_namespace, packages_dir, grpc_server, grpc_runner):
+def operator(grpc_server, grpc_runner, packages_secrets, packages_namespace, packages_dir):
     logging.getLogger('kopf.objects').setLevel(logging.INFO)
-    global PACKAGES_DIR, GRPC_SERVER, GRPC_RUNNER
-    PACKAGES_DIR = packages_dir
+    global GRPC_SERVER, GRPC_RUNNER, PACKAGES_DIR
     GRPC_SERVER = grpc_server
     GRPC_RUNNER = grpc_runner
     PACKAGES_DIR = pathlib.Path(packages_dir).expanduser().resolve()
