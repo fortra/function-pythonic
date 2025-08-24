@@ -4,7 +4,7 @@ COPY dist/*.whl /root
 WORKDIR /
 RUN \
   set -eux && \
-  pip install --root-user-action ignore --no-build-isolation /root/*.whl && \
+  pip install --root-user-action ignore --no-build-isolation $(echo /root/*.whl)[packages,pip-install] && \
   rm -rf /root/*.whl /root/.cache && \
   groupadd --gid 2000 pythonic && \
   useradd --uid 2000 --gid pythonic --home-dir /opt/pythonic --create-home --shell /usr/sbin/nologin pythonic

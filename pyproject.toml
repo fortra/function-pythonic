@@ -21,7 +21,9 @@ dependencies = [
   "pyyaml==6.0.2",
 ]
 
-dynamic = ["version"]
+[project.optional-dependencies]
+packages = ["kopf==1.38.0"]
+pip-install = ["pip==25.2"]
 
 [project.urls]
 Documentation = "https://github.com/fortra/function-pythonic#readme"
