@@ -1,0 +1,70 @@
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-pythonic
+spec:
+  package: ghcr.io/fortra/function-pythonic:v0.0.8
+  runtimeConfigRef:
+    name: function-pythonic
+---
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: function-pythonic
+spec:
+  deploymentTemplate:
+    spec:
+      selector: {}
+      template:
+        spec:
+          containers:
+          - name: package-runtime
+            args:
+            - --debug
+            - --python-path
+            - /mnt/composites
+            volumeMounts:
+            - name: composites
+              mountPath: /mnt/composites
+          serviceAccountName: function-pythonic
+          volumes:
+          - name: composites
+            configMap:
+              name: pythonic-composites
+  serviceAccountTemplate:
+    metadata:
+      name: function-pythonic
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: crossplane-system
+  name: function-pythonic
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  verbs:
+  - list
+  - watch
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - events
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: crossplane-system
+  name: function-pythonic
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: function-pythonic
+subjects:
+- kind: ServiceAccount
+  name: function-pythonic
