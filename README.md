@@ -266,7 +266,7 @@ Each resource in the list is the following RequiredResource class:
 
 ### Conditions
 
-The `BaseCompsite.conditions`, `Resource.conditions`, and `RequiredResource.conditions` fields
+The `BaseComposite.conditions`, `Resource.conditions`, and `RequiredResource.conditions` fields
 are maps of that entity's status conditions array, with the map key being the condition type.
 The fields are read only for `Resource.conditions` and `RequiredResource.conditions`.
 
@@ -349,11 +349,7 @@ spec:
       apiVersion: pythonic.fn.fortra.com/v1alpha1
       kind: Composite
       composite: |
-<<<<<<< HEAD
         class GreetingComposite(BaseComposite):
-=======
-        class Composite(BaseComposite):
->>>>>>> 185c4c0 (Add PyPi build and publish)
           def compose(self):
             self.status.greeting = f"Hello, {self.spec.who}!"
 ```
@@ -366,11 +362,7 @@ metadata:
   annotations:
     render.crossplane.io/runtime: Development
 spec:
-<<<<<<< HEAD
   package: ghcr.io/fortra/function-pythonic:v0.0.10
-=======
-  package: ghcr.io/fortra/function-pythonic:v0.0.7
->>>>>>> 185c4c0 (Add PyPi build and publish)
 ```
 In one terminal session, run function-pythonic:
 ```shell
