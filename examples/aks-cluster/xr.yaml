@@ -5,6 +5,7 @@ metadata:
   name: my-aks-cluster
 spec:
   defaultNodePool:
+    name: systempool1
     autoScaling:
       enabled: False
       minCount: 1

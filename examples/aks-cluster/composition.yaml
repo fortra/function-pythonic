@@ -19,6 +19,6 @@ spec:
     functionRef:
       name: function-pythonic
     input:
-      apiVersion: paks.ythonic.fn.fortra.com/v1alpha1
+      apiVersion: aks.pythonic.fn.fortra.com/v1alpha1
       kind: Composite
       composite: aks.kubernetescluster.KubernetesClusterComposite
