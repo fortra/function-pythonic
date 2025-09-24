@@ -1,0 +1,7 @@
+apiVersion: ec2.aws.crossplane.io/v1beta1
+kind: VPC
+metadata:
+  name: usages-vpc
+status:
+  atProvider:
+    vpcId: vpc-01234567

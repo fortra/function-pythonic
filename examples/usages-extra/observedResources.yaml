@@ -1,0 +1,6 @@
+apiVersion: ec2.aws.crossplane.io/v1beta1
+kind: Subnet
+metadata:
+  annotations:
+    crossplane.io/composition-resource-name: SubnetA
+  name: usages-subnet

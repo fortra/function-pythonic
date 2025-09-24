@@ -12,7 +12,7 @@ def test_map():
     assert len(value) == 3
     assert value.c == 3
     value = protobuf.Map()
-    assert not value
+    assert value
     assert len(value) == 0
     value['a'] = 1
     assert value
@@ -28,7 +28,7 @@ def test_list():
     assert len(value) == 3
     assert value[2] == 3
     value = protobuf.List()
-    assert not value
+    assert value
     assert len(value) == 0
     value[0] = 1
     assert value
@@ -66,30 +66,32 @@ a: 1
 b: 2
 '''
     value = protobuf.Yaml(yaml)
-    assert isinstance(value, protobuf.Values)
+    assert isinstance(value, protobuf.Value)
     assert value._isMap
     assert len(value) == 2
     assert str(value) == yaml
     assert format(value) == yaml
     assert format(value, 'yaml') == yaml
-    
     yaml = '''\
 - 1
 - 2
 '''
     value = protobuf.Yaml(yaml)
-    assert isinstance(value, protobuf.Values)
+    assert isinstance(value, protobuf.Value)
     assert value._isList
     assert len(value) == 2
     assert str(value) == yaml
     assert format(value) == yaml
     assert format(value, 'yaml') == yaml
     value = protobuf.Yaml('test')
-    assert isinstance(value, str)
+    assert isinstance(value, protobuf.Value)
+    assert value == 'test'
     value = protobuf.Yaml('1')
-    assert isinstance(value, int)
+    assert isinstance(value, protobuf.Value)
+    assert value == 1
     value = protobuf.Yaml('1.2')
-    assert isinstance(value, float)
+    assert isinstance(value, protobuf.Value)
+    assert value == 1.2
 
 def test_json():
     json = '''\
@@ -98,7 +100,7 @@ def test_json():
   "b": 2
 }'''
     value = protobuf.Json(json)
-    assert isinstance(value, protobuf.Values)
+    assert isinstance(value, protobuf.Value)
     assert value._isMap
     assert len(value) == 2
     assert format(value, 'json') == json
@@ -108,16 +110,19 @@ def test_json():
   2
 ]'''
     value = protobuf.Json(json)
-    assert isinstance(value, protobuf.Values)
+    assert isinstance(value, protobuf.Value)
     assert value._isList
     assert len(value) == 2
     assert format(value, 'json') == json    
     value = protobuf.Json('"test"')
-    assert isinstance(value, str)
+    assert isinstance(value, protobuf.Value)
+    assert value == 'test'
     value = protobuf.Json('1')
-    assert isinstance(value, int)
+    assert isinstance(value, protobuf.Value)
+    assert value == 1
     value = protobuf.Json('1.2')
-    assert isinstance(value, float)
+    assert isinstance(value, protobuf.Value)
+    assert value == 1.2
 
 def test_values_map():
     values = protobuf.Map(
@@ -132,26 +137,26 @@ def test_values_map():
         float=1.1,
         bool=True,
     )
-    assert isinstance(values.map, protobuf.Values)
+    assert isinstance(values.map, protobuf.Value)
     assert values.map._isMap
-    assert isinstance(values.map2, protobuf.Values)
+    assert isinstance(values.map2, protobuf.Value)
     assert values.map2._isMap
-    assert isinstance(values.list, protobuf.Values)
+    assert isinstance(values.list, protobuf.Value)
     assert values.list._isList
-    assert isinstance(values.list2, protobuf.Values)
+    assert isinstance(values.list2, protobuf.Value)
     assert values.list2._isList
-    assert isinstance(values.unknown, protobuf.Values)
+    assert isinstance(values.unknown, protobuf.Value)
     assert values.unknown._isUnknown
-    assert values.none is None
-    assert isinstance(values.str, str)
+    assert values.none == None
+    assert isinstance(values.str, protobuf.Value)
     assert values.str == 'test'
-    assert isinstance(values.int, int)
+    assert isinstance(values.int, protobuf.Value)
     assert values.int == 1
-    assert isinstance(values.float, float)
+    assert isinstance(values.float, protobuf.Value)
     assert values.float == 1.1
-    assert isinstance(values.bool, bool)
-    assert values.bool is True
-    assert isinstance(values.placeholder, protobuf.Values)
+    assert isinstance(values.bool, protobuf.Value)
+    assert values.bool == True
+    assert isinstance(values.placeholder, protobuf.Value)
     assert values.placeholder._isUnknown
     assert 'map' in values
     assert 'nope' not in values
@@ -174,26 +179,26 @@ def test_values_list():
         1.1,                # 8
         True,               # 9
     )
-    assert isinstance(values[0], protobuf.Values)
+    assert isinstance(values[0], protobuf.Value)
     assert values[0]._isMap
-    assert isinstance(values[1], protobuf.Values)
+    assert isinstance(values[1], protobuf.Value)
     assert values[1]._isMap
-    assert isinstance(values[2], protobuf.Values)
+    assert isinstance(values[2], protobuf.Value)
     assert values[2]._isList
-    assert isinstance(values[3], protobuf.Values)
+    assert isinstance(values[3], protobuf.Value)
     assert values[3]._isList
-    assert isinstance(values[4], protobuf.Values)
+    assert isinstance(values[4], protobuf.Value)
     assert values[4]._isUnknown
-    assert values[5] is None
-    assert isinstance(values[6], str)
+    assert values[5] == None
+    assert isinstance(values[6], protobuf.Value)
     assert values[6] == 'test'
-    assert isinstance(values[7], int)
+    assert isinstance(values[7], protobuf.Value)
     assert values[7] == 1
-    assert isinstance(values[8], float)
+    assert isinstance(values[8], protobuf.Value)
     assert values[8] == 1.1
-    assert isinstance(values[9], bool)
-    assert values[9] is True
-    assert isinstance(values[10], protobuf.Values)
+    assert isinstance(values[9], protobuf.Value)
+    assert values[9] == True
+    assert isinstance(values[10], protobuf.Value)
     assert values[10]._isUnknown
     assert 'test' in values
     assert 'nope' not in values

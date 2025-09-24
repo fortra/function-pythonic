@@ -95,6 +95,26 @@ overridden for all composed resource by setting the Composite `self.unknownsFata
 to False, or at the individual composed resource level by setting the
 `Resource.unknownsFatal` field to False.
 
+## Usage Dependencies
+
+function-pythonic can be configured to automatically create
+[Crossplane Usages](https://docs.crossplane.io/latest/managed-resources/usages/)
+dependencies between resources. Modifying the above VPC example with:
+```yaml
+self.usages = True
+
+vpc = self.resources.VPC('ec2.aws.crossplane.io/v1beta1', 'VPC')
+vpc.spec.forProvider.region = 'us-east-1
+vpc.spec.forProvider.cidrBlock = '10.0.0.0/16'
+
+subnet = self.resources.SubnetA('ec2.aws.crossplane.io/v1beta1', 'Subnet')
+subnet.spec.forProvider.region = 'us-east-1'
+subnet.spec.forProvider.vpcId = vpc.status.atProvider.vpcId
+subnet.spec.forProvider.availabilityZone = 'us-east-1a'
+subnet.spec.forProvider.cidrBlock = '10.0.0.0/20'
+```
+Will generate the appropriate Crossplane Usage resource.
+
 ## Pythonic access of Protobuf Messages
 
 All Protobuf messages are wrapped by a set of python classes which enable using
@@ -201,6 +221,7 @@ The BaseComposite also provides access to the following Crossplane Function leve
 | self.requireds | Requireds | Request and read additional local Kubernetes resources |
 | self.resources | Resources | Define and process composed resources |
 | self.unknownsFatal | Boolean | Terminate the composition if already created resources are assigned unknown values, default True |
+| self.usages| Boolean | Generate Crossplane Usages for resource dependencies, default False |
 | self.autoReady | Boolean | Perform auto ready processing on all composed resources, default True |
 
 ### Composed Resources
@@ -227,6 +248,7 @@ Resource class:
 | Resource.connection | Connection | The resource connection details |
 | Resource.ready | Boolean | The resource ready state |
 | Resource.unknownsFatal | Boolean | Terminate the composition if this resource has been created and is assigned unknown values, default is Composite.unknownsFatal |
+| Resource.usages | Boolean | Generate Crossplane Usages for this resource, default is Composite.autoReady |
 | Resource.autoReady | Boolean | Perform auto ready processing on this resource, default is Composite.autoReady |
 
 ### Required Resources (AKA Extra Resources)

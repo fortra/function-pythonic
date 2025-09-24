@@ -59,6 +59,7 @@ packages = ["crossplane"]
 [tool.hatch.envs.default.scripts]
 production = "python -m crossplane.pythonic.main --insecure"
 development = "python -m crossplane.pythonic.main --insecure --debug --render-unknowns"
+#development = "python -m crossplane.pythonic.main --insecure --debug"
 packages = "python -m crossplane.pythonic.main --insecure --debug --render-unknowns --packages --packages-secrets"
 
 [tool.hatch.envs.lint]
@@ -81,8 +82,8 @@ dependencies = [
 ]
 packages = ["crossplane"]
 [tool.hatch.envs.test.scripts]
-all = "python -m pytest tests/ --verbose --verbose --cov --cov-report=term --cov-report=html:reports"
-protobuf = "python -m pytest tests/test_protobuf*.py --verbose --verbose --cov --cov-report=term --cov-report=html:reports"
+all = "python -m pytest tests/ -x --verbose --verbose --cov --cov-report=term --cov-report=html:reports"
+protobuf = "python -m pytest tests/test_protobuf_*.py -x --verbose --verbose --cov --cov-report=term --cov-report=html:reports"
 ci = "python -m pytest tests --verbose --verbose --junitxml=reports/pytest-junit.xml --cov --cov-report=term --cov-report=xml:reports/pytest-coverage.xml"
 
 [tool.ruff]

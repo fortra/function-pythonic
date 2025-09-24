@@ -1,4 +1,4 @@
-from crossplane.pythonic import BaseComposite, Map
+from crossplane.pythonic import BaseComposite, Map, B64Encode
 
 class VClusterComposite(BaseComposite):
 

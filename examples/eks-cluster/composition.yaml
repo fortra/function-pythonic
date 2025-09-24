@@ -18,6 +18,8 @@ spec:
       composite: |
         class Composite(BaseComposite):
           def compose(self):
+            self.usages = True
+
             v = self.resources.VPC('ec2.aws.crossplane.io/v1beta1', 'VPC')
             v.spec.forProvider.region = self.spec.cluster.region
             v.spec.forProvider.enableDnsHostNames = True

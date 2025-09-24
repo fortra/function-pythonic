@@ -31,6 +31,7 @@ class BaseComposite:
         self.resources = Resources(self)
         self.unknownsFatal = True
         self.autoReady = True
+        self.usages = False
 
         observed = self.request.observed.composite
         desired = self.response.desired.composite
@@ -49,7 +50,7 @@ class BaseComposite:
     def ttl(self):
         if self.response.meta.ttl.nanos:
             return float(self.response.meta.ttl.seconds) + (float(self.response.meta.ttl.nanos) / 1000000000.0)
-        return self.response.meta.ttl.seconds
+        return int(self.response.meta.ttl.seconds)
 
     @ttl.setter
     def ttl(self, ttl):
@@ -61,7 +62,7 @@ class BaseComposite:
             if ttl.is_integer():
                 self.response.meta.ttl.nanos = 0
             else:
-                self.response.meta.ttl.nanos = int((ttl -  self.response.meta.ttl.seconds) * 1000000000)
+                self.response.meta.ttl.nanos = int((ttl - int(self.response.meta.ttl.seconds)) * 1000000000)
         else:
             raise ValueError('ttl must be an int or float')
 
@@ -78,7 +79,7 @@ class BaseComposite:
     def ready(self, ready):
         if ready:
             ready = fnv1.Ready.READY_TRUE
-        elif ready == None or (isinstance(ready, protobuf.Values) and ready._isUnknown):
+        elif ready == None or (isinstance(ready, protobuf.Value) and ready._isUnknown):
             ready = fnv1.Ready.READY_UNSPECIFIED
         else:
             ready = fnv1.Ready.READY_FALSE
@@ -184,6 +185,7 @@ class Resource:
         self.connection = Connection(observed)
         self.unknownsFatal = None
         self.autoReady = None
+        self.usages = None
 
     def __call__(self, apiVersion=_notset, kind=_notset, namespace=_notset, name=_notset):
         self.desired()
@@ -199,7 +201,7 @@ class Resource:
 
     @property
     def apiVersion(self):
-        return self.observed.apiVersion
+        return self.desired.apiVersion
 
     @apiVersion.setter
     def apiVersion(self, apiVersion):
@@ -207,7 +209,7 @@ class Resource:
 
     @property
     def kind(self):
-        return self.observed.kind
+        return self.desired.kind
 
     @kind.setter
     def kind(self, kind):
@@ -265,7 +267,7 @@ class Resource:
     def ready(self, ready):
         if ready:
             ready = fnv1.Ready.READY_TRUE
-        elif ready == None or (isinstance(ready, protobuf.Values) and ready._isUnknown):
+        elif ready == None or (isinstance(ready, protobuf.Value) and ready._isUnknown):
             ready = fnv1.Ready.READY_UNSPECIFIED
         else:
             ready = fnv1.Ready.READY_FALSE
@@ -376,8 +378,8 @@ class RequiredResources:
                 elif isinstance(entry, (list, tuple)):
                     self._selector.match_labels.labels[entry[0]] = entry[1]
 
-    def __getitem__(self, key):
-        return RequiredResource(self.name, self._resources.items[key])
+    def __getitem__(self, ix):
+        return RequiredResource(self.name, ix, self._resources.items[ix])
 
     def __bool__(self):
         return bool(self._resources.items)
@@ -391,8 +393,9 @@ class RequiredResources:
 
 
 class RequiredResource:
-    def __init__(self, name, resource):
+    def __init__(self, name, ix, resource):
         self.name = name
+        self.ix = ix
         self.observed = resource.resource
         self.apiVersion = self.observed.apiVersion
         self.kind = self.observed.kind
@@ -487,7 +490,7 @@ class Condition(protobuf.ProtobufValue):
             condition.status = fnv1.Status.STATUS_CONDITION_TRUE
         elif status == None:
             condition.status = fnv1.Status.STATUS_CONDITION_UNKNOWN
-        elif isinstance(status, protobuf.Values) and status._isUnknown:
+        elif isinstance(status, protobuf.Value) and status._isUnknown:
             condition.status = fnv1.Status.STATUS_CONDITION_UNSPECIFIED
         else:
             condition.status = fnv1.Status.STATUS_CONDITION_FALSE
@@ -521,7 +524,7 @@ class Condition(protobuf.ProtobufValue):
             if observed.type == self.type:
                 time = observed.lastTransitionTime
                 if time:
-                    return datetime.datetime.fromisoformat(time)
+                    return datetime.datetime.fromisoformat(str(time))
         return None
 
     @property
@@ -534,7 +537,7 @@ class Condition(protobuf.ProtobufValue):
         condition = self._find_condition(True)
         if claim:
             condition.target = fnv1.Target.TARGET_COMPOSITE_AND_CLAIM
-        elif claim == None or (isinstance(claim, protobuf.Values) and claim._isUnknown):
+        elif claim == None or (isinstance(claim, protobuf.Value) and claim._isUnknown):
             condition.target = fnv1.Target.TARGET_UNSPECIFIED
         else:
             condition.target = fnv1.Target.TARGET_COMPOSITE
@@ -711,7 +714,7 @@ class Event:
         if bool(self):
             if claim:
                 self._result.target = fnv1.Target.TARGET_COMPOSITE_AND_CLAIM
-            elif claim == None or (isinstance(claim, protobuf.Values) and claim._isUnknown):
+            elif claim == None or (isinstance(claim, protobuf.Value) and claim._isUnknown):
                 self._result.target = fnv1.Target.TARGET_UNSPECIFIED
             else:
                 self._result.target = fnv1.Target.TARGET_COMPOSITE

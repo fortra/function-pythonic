@@ -1,0 +1,26 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: usages-extra
+spec:
+  compositeTypeRef:
+    apiVersion: example.crossplane.io/v1beta1
+    kind: XR
+  mode: Pipeline
+  pipeline:
+  - step: render-templates
+    functionRef:
+      name: function-pythonic
+    input:
+      apiVersion: pythonic.fn.fortra.com/v1alpha1
+      kind: Composite
+      composite: |
+        class UsagesComposite(BaseComposite):
+          def compose(self):
+            self.usages = True
+            vpc = self.requireds.VPC('ec2.aws.crossplane.io/v1beta1', 'VPC', name='usages-vpc')[0]
+            subnet = self.resources.SubnetA('ec2.aws.crossplane.io/v1beta1', 'Subnet')
+            subnet.spec.forProvider.region = 'us-east-1'
+            subnet.spec.forProvider.vpcId = vpc.status.atProvider.vpcId
+            subnet.spec.forProvider.availabilityZone = 'us-east-1a'
+            subnet.spec.forProvider.cidrBlock = '10.0.0.0/20'

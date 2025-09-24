@@ -217,8 +217,8 @@ jobs:
   # pushes them as a multi-platform package. We only push the package it the
   # XPKG_ACCESS_ID and XPKG_TOKEN secrets were provided.
   push-xpkg:
-    # Don't publish unless we were run with an explicit version.
-    if: ${{ inputs.version != '' }}
+    # Don't publish unless the main branch or we were run with an explicit version
+    if: ${{ github.ref == 'refs/heads/main' || inputs.version != '' }}
     needs:
       - build-xpkg
     runs-on: ubuntu-24.04

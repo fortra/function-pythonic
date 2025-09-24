@@ -10,3 +10,4 @@ spec:
   tags:
     project: development
     environment: stage
+    'fortra:cloudops': 'owned'

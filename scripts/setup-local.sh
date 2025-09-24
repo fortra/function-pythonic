@@ -44,7 +44,7 @@ kind: Provider
 metadata:
   name: provider-helm
 spec:
-  package: xpkg.crossplane.io/crossplane-contrib/provider-helm:v0.21.0
+  package: xpkg.crossplane.io/crossplane-contrib/provider-helm:v1.0.3
   runtimeConfigRef:
     apiVersion: pkg.crossplane.io/v1beta1
     kind: DeploymentRuntimeConfig
@@ -67,7 +67,7 @@ kind: Provider
 metadata:
   name: provider-kubernetes
 spec:
-  package: xpkg.crossplane.io/crossplane-contrib/provider-kubernetes:v0.18.0
+  package: xpkg.crossplane.io/crossplane-contrib/provider-kubernetes:v1.0.1
   runtimeConfigRef:
     apiVersion: pkg.crossplane.io/v1beta1
     kind: DeploymentRuntimeConfig
