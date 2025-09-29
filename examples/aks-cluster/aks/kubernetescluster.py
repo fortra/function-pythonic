@@ -22,7 +22,7 @@ class KubernetesClusterComposite(BaseComposite):
         else:
             aks.spec.forProvider.defaultNodePool.nodeCount = self.spec.nodeCount
 
-        aks.spec.forProvider.defaultNodePool.name = 'systempool1'
+        aks.spec.forProvider.defaultNodePool.name = self.spec.defaultNodePool.name
         aks.spec.forProvider.defaultNodePool.vmSize = self.spec.vmSize
         aks.spec.forProvider.dnsPrefix = self.metadata.name
 

@@ -24,6 +24,8 @@ spec:
                 defaultNodePool:
                   type: object
                   properties:
+                    name:
+                      type: string
                     autoScaling:
                       type: object
                       properties:
