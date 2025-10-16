@@ -11,5 +11,5 @@ response:
   desired: null
   conditions: null
   results:
-  - message: "Exec exceptiion: No module named 'missing'"
+  - message: "Exec exception: No module named 'missing'"
     severity: 1
