@@ -10,5 +10,5 @@ response:
   desired: null
   conditions: null
   results:
-  - message: "Import module exceptiion: No module named 'missing'"
+  - message: "Import module exception: No module named 'missing'"
     severity: 1

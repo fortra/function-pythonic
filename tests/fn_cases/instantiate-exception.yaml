@@ -14,5 +14,5 @@ response:
   desired: null
   conditions: null
   results:
-  - message: "Instantiate exceptiion: name 'bar' is not defined"
+  - message: "Instantiate exception: name 'bar' is not defined"
     severity: 1

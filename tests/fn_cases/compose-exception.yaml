@@ -13,5 +13,5 @@ response:
   desired: null
   conditions: null
   results:
-  - message: "Compose exceptiion: name 'bar' is not defined"
+  - message: "Compose exception: name 'bar' is not defined"
     severity: 1

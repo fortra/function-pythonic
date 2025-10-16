@@ -12,5 +12,5 @@ response:
   desired: null
   conditions: null
   results:
-  - message: 'Compose exceptiion: NotImplementedError'
+  - message: "Compose exception: NotImplementedError"
     severity: 1
