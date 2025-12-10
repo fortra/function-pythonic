@@ -1,5 +1,10 @@
 # function-pythonic
 
+## Archived
+
+function-pythonic is now hosted and maintained at [https://github.com/crossplane-contrib/function-pythonic](https://github.com/crossplane-contrib/function-pythonic).
+Please submit all Issues and Pull Requests at the new location.
+
 ## Introduction
 
 A Crossplane composition function that lets you compose Composites using a set
